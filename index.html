@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Infinite Mind Map Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+        #controls, #edit-controls {
+            position: fixed;
+            z-index: 1000;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        #controls {
+            top: 10px;
+            left: 10px;
+        }
+        #edit-controls {
+            top: 50px;
+            left: 10px;
+        }
+        #mindmap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: move;
+        }
+        .node {
+            position: absolute;
+            background-color: #3a3a3a;
+            border: 1px solid #555;
+            border-radius: 5px;
+            padding: 10px;
+            user-select: none;
+            min-width: 150px;
+            min-height: 100px;
+            transition: opacity 0.3s ease;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .node-content {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            word-wrap: break-word;
+            box-sizing: border-box;
+            padding: 10px;
+            cursor: move;
+        }
+        .node-content img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        .node-buttons {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+            flex-direction: column;
+        }
+        .node .collapse-btn, .node .remove-btn {
+            width: 20px;
+            height: 20px;
+            background-color: #555;
+            color: #e0e0e0;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: none;
+            margin-bottom: 5px;
+            font-size: 12px;
+            line-height: 1;
+            padding: 0;
+        }
+        .node .collapse-btn.visible, .node .remove-btn.visible {
+            display: block;
+        }
+        .node.selected {
+            box-shadow: 0 0 0 2px #8a8a8a;
+        }
+        .node.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .resize-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #8a8a8a;
+            border: 1px solid #e0e0e0;
+            border-radius: 50%;
+            display: block;
+        }
+        .resize-handle.top-left { top: -5px; left: -5px; cursor: nwse-resize; }
+        .resize-handle.top-right { top: -5px; right: -5px; cursor: nesw-resize; }
+        .resize-handle.bottom-left { bottom: -5px; left: -5px; cursor: nesw-resize; }
+        .resize-handle.bottom-right { bottom: -5px; right: -5px; cursor: nwse-resize; }
+        button, select {
+            background-color: #4a4a4a;
+            color: #e0e0e0;
+            border: none;
+            padding: 5px 10px;
+            margin: 2px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        #connection-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        #image-input {
+            display: none;
+        }
+        .edit-connection-mode .node {
+            cursor: pointer;
+        }
+        .connection {
+            stroke: #6a6a6a;
+            stroke-width: 2;
+        }
+        .connection:hover {
+            stroke: #ff4444;
+            stroke-width: 3;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button id="add-node">Add Node</button>
+        <button id="add-image">Add Image</button>
+        <button id="save">Save</button>
+        <button id="load">Load</button>
+        <button id="edit-connections">Edit Connections</button>
+    </div>
+    <div id="edit-controls">
+        <select id="font-size">
+            <option value="12px">12px</option>
+            <option value="14px">14px</option>
+            <option value="16px" selected>16px</option>
+            <option value="18px">18px</option>
+            <option value="20px">20px</option>
+        </select>
+        <select id="font-family">
+            <option value="Arial" selected>Arial</option>
+            <option value="Verdana">Verdana</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Courier">Courier</option>
+        </select>
+        <button id="bold">B</button>
+        <button id="italic">I</button>
+        <button id="underline">U</button>
+    </div>
+    <div id="mindmap"></div>
+    <canvas id="connection-canvas"></canvas>
+    <input type="file" id="image-input" accept="image/*">
+
+    <script>
+        const mindmap = document.getElementById('mindmap');
+        const canvas = document.getElementById('connection-canvas');
+        const ctx = canvas.getContext('2d');
+        const imageInput = document.getElementById('image-input');
+        let nodes = [];
+        let connections = [];
+        let isDragging = false;
+        let dragStartX, dragStartY;
+        let selectedNode = null;
+        let connectStartNode = null;
+        let offsetX = 0, offsetY = 0;
+        let draggingNode = null;
+        let isEditingConnections = false;
+        let isResizing = false;
+        let resizeHandle = null;
+        let initialWidth, initialHeight, initialLeft, initialTop;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            drawConnections();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        document.getElementById('add-node').addEventListener('click', addNode);
+        document.getElementById('add-image').addEventListener('click', () => imageInput.click());
+        document.getElementById('save').addEventListener('click', saveMindMap);
+        document.getElementById('load').addEventListener('click', loadMindMap);
+        document.getElementById('edit-connections').addEventListener('click', toggleEditConnectionsMode);
+        imageInput.addEventListener('change', addImageToNode);
+
+        mindmap.addEventListener('mousedown', startDrag);
+        mindmap.addEventListener('mousemove', drag);
+        mindmap.addEventListener('mouseup', stopDrag);
+        mindmap.addEventListener('mouseleave', stopDrag);
+
+        document.getElementById('font-size').addEventListener('change', updateFontSize);
+        document.getElementById('font-family').addEventListener('change', updateFontFamily);
+        document.getElementById('bold').addEventListener('click', () => formatText('bold'));
+        document.getElementById('italic').addEventListener('click', () => formatText('italic'));
+        document.getElementById('underline').addEventListener('click', () => formatText('underline'));
+
+        function addNode() {
+            const node = document.createElement('div');
+            node.className = 'node';
+            
+            const viewportX = window.innerWidth / 4;
+            const viewportY = window.innerHeight / 4;
+            
+            node.style.left = `${viewportX}px`;
+            node.style.top = `${viewportY}px`;
+            node.style.width = '150px';
+            node.style.height = '100px';
+            
+            node.innerHTML = `
+                <div class="node-content">
+                    <div contenteditable="true">New Node</div>
+                </div>
+                <div class="node-buttons">
+                    <button class="collapse-btn">+</button>
+                    <button class="remove-btn">x</button>
+                </div>
+                <div class="resize-handle top-left"></div>
+                <div class="resize-handle top-right"></div>
+                <div class="resize-handle bottom-left"></div>
+                <div class="resize-handle bottom-right"></div>
+            `;
+            node.addEventListener('mousedown', nodeMouseDown);
+            node.querySelector('.collapse-btn').addEventListener('click', toggleCollapse);
+            node.querySelector('.remove-btn').addEventListener('click', removeNode);
+            node.querySelectorAll('.resize-handle').forEach(handle => {
+                handle.addEventListener('mousedown', startResize);
+            });
+            mindmap.appendChild(node);
+            nodes.push(node);
+            updateCollapseButtons();
+        }
+
+        function nodeMouseDown(e) {
+            e.stopPropagation();
+            if (e.target.classList.contains('collapse-btn') || e.target.classList.contains('remove-btn')) return;
+            if (e.target.classList.contains('resize-handle')) {
+                startResize(e);
+                return;
+            }
+            if (isEditingConnections) {
+                handleEditConnection(e.target.closest('.node'));
+            } else {
+                selectNode(e.target.closest('.node'));
+                draggingNode = e.target.closest('.node');
+                dragStartX = e.clientX - parseInt(draggingNode.style.left);
+                dragStartY = e.clientY - parseInt(draggingNode.style.top);
+            }
+        }
+
+        function selectNode(node) {
+            if (selectedNode) selectedNode.classList.remove('selected');
+            selectedNode = node;
+            selectedNode.classList.add('selected');
+        }
+
+        function removeNode(e) {
+            e.stopPropagation();
+            const node = e.target.closest('.node');
+            if (confirm('Are you sure you want to remove this node?')) {
+                connections = connections.filter(conn => conn.start !== node && conn.end !== node);
+                nodes = nodes.filter(n => n !== node);
+                node.remove();
+                updateCollapseButtons();
+                drawConnections();
+            }
+        }
+
+        function startDrag(e) {
+            if (!draggingNode && !isResizing) {
+                isDragging = true;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+            }
+        }
+
+        function drag(e) {
+            if (isResizing) {
+                resize(e);
+            } else if (draggingNode) {
+                const x = e.clientX - dragStartX;
+                const y = e.clientY - dragStartY;
+                draggingNode.style.left = `${x}px`;
+                draggingNode.style.top = `${y}px`;
+                drawConnections();
+            } else if (isDragging) {
+                const dx = e.clientX - dragStartX;
+                const dy = e.clientY - dragStartY;
+                offsetX -= dx;
+                offsetY -= dy;
+                updateNodesPosition(dx, dy);
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                drawConnections();
+            }
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            draggingNode = null;
+        }
+
+        function updateNodesPosition(dx, dy) {
+            nodes.forEach(node => {
+                node.style.left = `${parseInt(node.style.left) + dx}px`;
+                node.style.top = `${parseInt(node.style.top) + dy}px`;
+            });
+        }
+
+        function drawConnections() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#6a6a6a';
+            ctx.lineWidth = 2;
+
+            connections.forEach(conn => {
+                if (!conn.start.classList.contains('hidden') && !conn.end.classList.contains('hidden')) {
+                    const startRect = conn.start.getBoundingClientRect();
+                    const endRect = conn.end.getBoundingClientRect();
+                    
+                    const [startX, startY] = getIntersectionPoint(startRect, endRect);
+                    const [endX, endY] = getIntersectionPoint(endRect, startRect);
+
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                }
+            });
+        }
+
+        function getIntersectionPoint(rect1, rect2) {
+            const x1 = rect1.left + rect1.width / 2;
+            const y1 = rect1.top + rect1.height / 2;
+            const x2 = rect2.left + rect2.width / 2;
+            const y2 = rect2.top + rect2.height / 2;
+
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+
+            const halfWidth = rect1.width / 2;
+            const halfHeight = rect1.height / 2;
+
+            let x, y;
+
+            if (Math.abs(Math.cos(angle)) * halfHeight > Math.abs(Math.sin(angle)) * halfWidth) {
+                x = x1 + Math.sign(Math.cos(angle)) * halfWidth;
+                y = y1 + Math.tan(angle) * (x - x1);
+            } else {
+                y = y1 + Math.sign(Math.sin(angle)) * halfHeight;
+                x = x1 + (y - y1) / Math.tan(angle);
+            }
+
+            return [x, y];
+        }
+
+        function toggleCollapse(e) {
+            e.stopPropagation();
+            const node = e.target.closest('.node');
+            const isCollapsed = node.classList.toggle('collapsed');
+            e.target.textContent = isCollapsed ? '+' : '-';
+            
+            if (isCollapsed) {
+                collapseAllDescendants(node);
+            } else {
+                showDirectChildren(node);
+            }
+            
+            drawConnections();
+        }
+
+        function collapseAllDescendants(parentNode) {
+            const descendants = getAllDescendants(parentNode);
+            descendants.forEach(descendant => {
+                descendant.classList.add('hidden');
+                descendant.classList.add('collapsed');
+                descendant.querySelector('.collapse-btn').textContent = '+';
+            });
+        }
+
+        function showDirectChildren(parentNode) {
+            const childNodes = getChildNodes(parentNode);
+            childNodes.forEach(childNode => {childNode.classList.remove('hidden');
+            });
+        }
+
+        function getAllDescendants(parentNode) {
+            let descendants = [];
+            const childNodes = getChildNodes(parentNode);
+            childNodes.forEach(childNode => {
+                descendants.push(childNode);
+                descendants = descendants.concat(getAllDescendants(childNode));
+            });
+            return descendants;
+        }
+
+        function getChildNodes(parentNode) {
+            return connections
+                .filter(conn => conn.start === parentNode)
+                .map(conn => conn.end);
+        }
+
+        function updateCollapseButtons() {
+            nodes.forEach(node => {
+                const hasChildren = connections.some(conn => conn.start === node);
+                const collapseBtn = node.querySelector('.collapse-btn');
+                const removeBtn = node.querySelector('.remove-btn');
+                if (hasChildren) {
+                    collapseBtn.classList.add('visible');
+                } else {
+                    collapseBtn.classList.remove('visible');
+                }
+                removeBtn.classList.add('visible');
+            });
+        }
+
+        function addImageToNode(e) {
+            if (!selectedNode) {
+                alert('Please select a node first');
+                return;
+            }
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const originalWidth = this.width;
+                        const originalHeight = this.height;
+                        
+                        img.dataset.filename = file.name;
+                        img.style.maxWidth = '100%';
+                        img.style.height = 'auto';
+                        
+                        const nodeContent = selectedNode.querySelector('.node-content');
+                        nodeContent.insertBefore(img, nodeContent.firstChild);
+                        
+                        // Expand the node to fit the image
+                        const padding = 20;
+                        const minWidth = 150;
+                        const minHeight = 100;
+                        const newWidth = Math.max(minWidth, originalWidth + padding);
+                        const newHeight = Math.max(minHeight, selectedNode.offsetHeight + originalHeight + padding);
+                        
+                        selectedNode.style.width = `${newWidth}px`;
+                        selectedNode.style.height = `${newHeight}px`;
+                        
+                        drawConnections();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function updateFontSize() {
+            if (selectedNode) {
+                const size = document.getElementById('font-size').value;
+                selectedNode.style.fontSize = size;
+            }
+        }
+
+        function updateFontFamily() {
+            if (selectedNode) {
+                const family = document.getElementById('font-family').value;
+                selectedNode.style.fontFamily = family;
+            }
+        }
+
+        function formatText(style) {
+            if (selectedNode) {
+                document.execCommand(style, false, null);
+            }
+        }
+
+        async function saveMindMap() {
+            const zip = new JSZip();
+            const imageFolder = zip.folder("images");
+            let imageIndex = 0;
+
+            const data = {
+                nodes: await Promise.all(nodes.map(async (node) => {
+                    const nodeData = {
+                        text: node.querySelector('.node-content div[contenteditable]').innerHTML,
+                        x: parseInt(node.style.left),
+                        y: parseInt(node.style.top),
+                        width: node.style.width,
+                        height: node.style.height,
+                        collapsed: node.classList.contains('collapsed'),
+                        hidden: node.classList.contains('hidden'),
+                        fontSize: node.style.fontSize,
+                        fontFamily: node.style.fontFamily,
+                        image: null,
+                        imageWidth: null,
+                        imageHeight: null
+                    };
+
+                    const img = node.querySelector('.node-content > img');  // Select only direct child img
+                    if (img) {
+                        const imgName = `image_${imageIndex}_${img.dataset.filename}`;
+                        nodeData.image = `images/${imgName}`;
+                        nodeData.imageWidth = img.naturalWidth;
+                        nodeData.imageHeight = img.naturalHeight;
+
+                        const response = await fetch(img.src);
+                        const blob = await response.blob();
+                        imageFolder.file(imgName, blob);
+
+                        imageIndex++;
+                    }
+
+                    return nodeData;
+                })),
+                connections: connections.map(conn => ({
+                    start: nodes.indexOf(conn.start),
+                    end: nodes.indexOf(conn.end)
+                })),
+                offset: { x: offsetX, y: offsetY }
+            };
+
+            zip.file("mindmap.json", JSON.stringify(data, null, 2));
+
+            const content = await zip.generateAsync({type:"blob"});
+            saveAs(content, "mindmap.zip");
+        }
+
+        function loadMindMap() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.zip';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                const zip = await JSZip.loadAsync(file);
+                const json = await zip.file("mindmap.json").async("string");
+                const data = JSON.parse(json);
+                await reconstructMindMap(data, zip);
+            }
+            input.click();
+        }
+
+        async function reconstructMindMap(data, zip) {
+            mindmap.innerHTML = '';
+            nodes = [];
+            connections = [];
+            offsetX = data.offset.x;
+            offsetY = data.offset.y;
+
+            for (const nodeData of data.nodes) {
+                const node = document.createElement('div');
+                node.className = 'node';
+                if (nodeData.collapsed) node.classList.add('collapsed');
+                if (nodeData.hidden) node.classList.add('hidden');
+                node.style.left = `${nodeData.x}px`;
+                node.style.top = `${nodeData.y}px`;
+                node.style.width = nodeData.width || '150px';
+                node.style.height = nodeData.height || '100px';
+                node.style.fontSize = nodeData.fontSize || '16px';
+                node.style.fontFamily = nodeData.fontFamily || 'Arial';
+                
+                let nodeContent = `<div class="node-content">`;
+                
+                if (nodeData.image) {
+                    const imageFile = zip.file(nodeData.image);
+                    if (imageFile) {
+                        const imageBlob = await imageFile.async("blob");
+                        const imageUrl = URL.createObjectURL(imageBlob);
+                        nodeContent += `<img src="${imageUrl}" data-filename="${nodeData.image.split('/').pop()}" style="max-width: 100%; height: auto;">`;
+                    }
+                }
+                
+                nodeContent += `<div contenteditable="true">${nodeData.text}</div></div>`;
+                node.innerHTML = nodeContent;
+
+                // Add buttons and resize handles
+                const buttonDiv = document.createElement('div');
+                buttonDiv.className = 'node-buttons';
+                buttonDiv.innerHTML = `
+                    <button class="collapse-btn">${nodeData.collapsed ? '+' : '-'}</button>
+                    <button class="remove-btn">x</button>
+                `;
+                node.appendChild(buttonDiv);
+
+                ['top-left', 'top-right', 'bottom-left', 'bottom-right'].forEach(position => {
+                    const handle = document.createElement('div');
+                    handle.className = `resize-handle ${position}`;
+                    node.appendChild(handle);
+                });
+                
+                node.addEventListener('mousedown', nodeMouseDown);
+                node.querySelector('.collapse-btn').addEventListener('click', toggleCollapse);
+                node.querySelector('.remove-btn').addEventListener('click', removeNode);
+                node.querySelectorAll('.resize-handle').forEach(handle => {
+                    handle.addEventListener('mousedown', startResize);
+                });
+                mindmap.appendChild(node);
+                nodes.push(node);
+            }
+
+            data.connections.forEach(conn => {
+                connections.push({
+                    start: nodes[conn.start],
+                    end: nodes[conn.end]
+                });
+            });
+
+            updateCollapseButtons();
+            drawConnections();
+        }
+
+        function toggleEditConnectionsMode() {
+            isEditingConnections = !isEditingConnections;
+            document.getElementById('edit-connections').textContent = isEditingConnections ? 'Exit Edit Connections' : 'Edit Connections';
+            mindmap.classList.toggle('edit-connection-mode', isEditingConnections);
+            if (isEditingConnections) {
+                drawConnectionsWithInteraction();
+            } else {
+                drawConnections();
+            }
+        }
+
+        function drawConnectionsWithInteraction() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            connections.forEach((conn, index) => {
+                if (!conn.start.classList.contains('hidden') && !conn.end.classList.contains('hidden')) {
+                    const startRect = conn.start.getBoundingClientRect();
+                    const endRect = conn.end.getBoundingClientRect();
+                    
+                    const [startX, startY] = getIntersectionPoint(startRect, endRect);
+                    const [endX, endY] = getIntersectionPoint(endRect, startRect);
+
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.strokeStyle = '#6a6a6a';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Add click detection for connections
+                    const midX = (startX + endX) / 2;
+                    const midY = (startY + endY) / 2;
+                    ctx.beginPath();
+                    ctx.arc(midX, midY, 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.fill();
+
+                    canvas.addEventListener('click', (e) => {
+                        const rect = canvas.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        if (Math.sqrt((x - midX) ** 2 + (y - midY) ** 2) <= 5) {
+                            if (confirm('Do you want to delete this connection?')) {
+                                connections.splice(index, 1);
+                                drawConnectionsWithInteraction();
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function handleEditConnection(node) {
+            if (!connectStartNode) {
+                connectStartNode = node;
+            } else if (connectStartNode !== node) {
+                const existingConnection = connections.find(
+                    conn => (conn.start === connectStartNode && conn.end === node) ||
+                            (conn.start === node && conn.end === connectStartNode)
+                );
+                if (existingConnection) {
+                    if (confirm('Do you want to delete this connection?')) {
+                        connections = connections.filter(conn => conn !== existingConnection);
+                    }
+                } else {
+                    connections.push({ start: connectStartNode, end: node });
+                }
+                drawConnectionsWithInteraction();
+                connectStartNode = null;
+                updateCollapseButtons();
+            }
+        }
+
+        function startResize(e) {
+            e.stopPropagation();
+            isResizing = true;
+            resizeHandle = e.target;
+            draggingNode = e.target.closest('.node');
+            selectNode(draggingNode);
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            initialWidth = draggingNode.offsetWidth;
+            initialHeight = draggingNode.offsetHeight;
+            initialLeft = parseInt(draggingNode.style.left);
+            initialTop = parseInt(draggingNode.style.top);
+            document.addEventListener('mousemove', resize);
+            document.addEventListener('mouseup', stopResize);
+        }
+
+        function resize(e) {
+            if (!isResizing) return;
+            let newWidth, newHeight, newLeft, newTop;
+
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+
+            if (resizeHandle.classList.contains('bottom-right')) {
+                newWidth = initialWidth + dx;
+                newHeight = initialHeight + dy;
+            } else if (resizeHandle.classList.contains('bottom-left')) {
+                newWidth = initialWidth - dx;
+                newHeight = initialHeight + dy;
+                newLeft = initialLeft + dx;
+            } else if (resizeHandle.classList.contains('top-right')) {
+                newWidth = initialWidth + dx;
+                newHeight = initialHeight - dy;
+                newTop = initialTop + dy;
+            } else if (resizeHandle.classList.contains('top-left')) {
+                newWidth = initialWidth - dx;
+                newHeight = initialHeight - dy;
+                newLeft = initialLeft + dx;
+                newTop = initialTop + dy;
+            }
+
+            draggingNode.style.width = `${Math.max(newWidth, 100)}px`;
+            draggingNode.style.height = `${Math.max(newHeight, 50)}px`;
+            if (newLeft !== undefined) draggingNode.style.left = `${newLeft}px`;
+            if (newTop !== undefined) draggingNode.style.top = `${newTop}px`;
+            drawConnections();
+        }
+
+        function stopResize() {
+            isResizing = false;
+            resizeHandle = null;
+            document.removeEventListener('mousemove', resize);
+            document.removeEventListener('mouseup', stopResize);
+        }
+
+        // Initial setup
+        resizeCanvas();
+    </script>
+</body>
+</html>
