@@ -515,7 +515,7 @@
                         imageHeight: null
                     };
 
-                    const img = node.querySelector('.node-content > img');  // Select only direct child img
+                    const img = node.querySelector('.node-content > img');
                     if (img) {
                         const imgName = `image_${imageIndex}_${img.dataset.filename}`;
                         nodeData.image = `images/${imgName}`;
@@ -541,7 +541,31 @@
             zip.file("mindmap.json", JSON.stringify(data, null, 2));
 
             const content = await zip.generateAsync({type:"blob"});
-            saveAs(content, "mindmap.zip");
+
+            try {
+                // Use the showSaveFilePicker API to let the user choose where to save the file
+                const fileHandle = await window.showSaveFilePicker({
+                    suggestedName: 'mindmap.zip',
+                    types: [{
+                        description: 'ZIP Files',
+                        accept: {'application/zip': ['.zip']},
+                    }],
+                });
+
+                const writable = await fileHandle.createWritable();
+                await writable.write(content);
+                await writable.close();
+
+                console.log('File saved successfully');
+            } catch (err) {
+                console.error('Error saving file:', err);
+                // Fallback to the old method if showSaveFilePicker is not supported
+                if (err.name === 'TypeError' && !window.showSaveFilePicker) {
+                    saveAs(content, "mindmap.zip");
+                } else {
+                    alert('An error occurred while saving the file. Please try again.');
+                }
+            }
         }
 
         function loadMindMap() {
