@@ -263,6 +263,66 @@
         #instructionsPanel ul {
             padding-left: 20px;
         }
+
+        /* Floating Action Buttons */
+        #action-buttons {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #action-buttons button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #0e639c;
+            color: #ffffff;
+            border: none;
+            cursor: pointer;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #action-buttons button:hover {
+            background-color: #1177bb;
+        }
+
+        #action-buttons button.active {
+            background-color: #1177bb;
+        }
+
+        /* Responsive buttons for smaller screens */
+        @media screen and (max-width: 800px) {
+            #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button {
+                font-size: 18px;
+                padding: 15px 25px;
+            }
+
+            #action-buttons button {
+                width: 70px;
+                height: 70px;
+                font-size: 32px;
+            }
+        }
+
+        @media screen and (max-width: 600px) {
+            #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button {
+                font-size: 20px;
+                padding: 20px 30px;
+            }
+
+            #action-buttons button {
+                width: 80px;
+                height: 80px;
+                font-size: 36px;
+            }
+        }
     </style>
     <!-- SimpleMDE CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplemde@1.11.2/dist/simplemde.min.css">
@@ -279,11 +339,18 @@
             <p>Instructions:</p>
             <ul>
                 <li>Hover over a node to highlight it and its connections.</li>
-                <li>Hold <strong>Ctrl</strong> and click another node to create a link.</li>
+                <li>Use the buttons below to add nodes, connect nodes, and delete.</li>
                 <li>Double-click a node to edit content and label.</li>
-                <li>Click a link to select it, then press <strong>Delete</strong> to remove it.</li>
+                <li>Click a link to select it, then press the trash button to remove it.</li>
             </ul>
         </div>
+    </div>
+
+    <!-- Floating Action Buttons -->
+    <div id="action-buttons">
+        <button id="add-node-button"><i class="fas fa-plus"></i></button>
+        <button id="connect-nodes-button"><i class="fas fa-link"></i></button>
+        <button id="delete-button"><i class="fas fa-trash"></i></button>
     </div>
 
     <!-- Modal for editing markdown and label -->
@@ -375,24 +442,7 @@
         let selectedNode = null;
         let selectedLink = null;
         let selectedLinkData = null;
-
-        // Add node on canvas click
-        svg.on("click", function (event) {
-            if (event.defaultPrevented) return; // dragged
-
-            // Deselect any selected link
-            if (selectedLink) {
-                selectedLink.classed('selected', false);
-                selectedLink = null;
-                selectedLinkData = null;
-            } else {
-                const point = d3.pointer(event, svg.node());
-                const nodeData = { id: Date.now(), x: point[0], y: point[1], content: "", label: "Node" };
-                nodes.push(nodeData);
-
-                restart();
-            }
-        });
+        let currentMode = null; // 'connect', 'delete', or null
 
         // Function to calculate node degrees and set radii
         function calculateNodeDegrees() {
@@ -444,13 +494,26 @@
                 .on("click", function (event, d) {
                     event.stopPropagation(); // prevent svg click
 
-                    if (event.ctrlKey && selectedNode && selectedNode !== d) {
-                        // Create a link between selectedNode and d
-                        links.push({ source: selectedNode, target: d });
-                        selectedNode = null;
-                        restart();
-                    } else if (event.ctrlKey) {
-                        selectedNode = d;
+                    if (currentMode === 'connect') {
+                        if (selectedNode && selectedNode !== d) {
+                            // Create a link between selectedNode and d
+                            links.push({ source: selectedNode, target: d });
+                            selectedNode = null;
+                            currentMode = null;
+                            connectNodesButton.classList.remove('active');
+                            restart();
+                        } else {
+                            selectedNode = d;
+                        }
+                    } else if (currentMode === 'delete') {
+                        if (confirm("Are you sure you want to delete this node?")) {
+                            // Remove node and connected links
+                            nodes = nodes.filter(n => n !== d);
+                            links = links.filter(l => l.source !== d && l.target !== d);
+                            currentMode = null;
+                            deleteButton.classList.remove('active');
+                            restart();
+                        }
                     } else {
                         openContentModal(d);
                     }
@@ -520,7 +583,16 @@
                 .attr("class", "link")
                 .on("click", function(event, d) {
                     event.stopPropagation();
-                    selectLink(d3.select(this), d);
+                    if (currentMode === 'delete') {
+                        if (confirm("Are you sure you want to delete this link?")) {
+                            links = links.filter(l => l !== d);
+                            currentMode = null;
+                            deleteButton.classList.remove('active');
+                            restart();
+                        }
+                    } else {
+                        selectLink(d3.select(this), d);
+                    }
                 })
                 .merge(link);
 
@@ -709,11 +781,6 @@
                         zip.file(imageName, imageData, { base64: true });
                         // Replace src with relative path in content
                         img.setAttribute('src', imageName);
-                        // Preserve data-image-id
-                        const imageId = img.getAttribute('data-image-id');
-                        if (imageId) {
-                            // Optionally, you can store the imageId in a separate metadata file if needed
-                        }
                     });
 
                     // Save modified content as HTML to preserve data-image-id
@@ -868,8 +935,6 @@
                         const imageId = 'image' + imageCounter;
 
                         // Assign data-image-id
-                        // It's important to have a unique identifier for each image
-                        // You can also use more robust unique ID generators if needed
                         const imageElement = new Image();
                         imageElement.src = dataUrl;
                         imageElement.setAttribute('data-image-id', imageId);
@@ -1008,6 +1073,67 @@
                 instructionsPanel.style.display = 'none';
             }
         };
+
+        // Floating Action Buttons
+        const addNodeButton = document.getElementById("add-node-button");
+        const connectNodesButton = document.getElementById("connect-nodes-button");
+        const deleteButton = document.getElementById("delete-button");
+
+        addNodeButton.addEventListener('click', () => {
+            // Add node at center
+            const nodeData = { id: Date.now(), x: width / 2, y: height / 2, content: "", label: "Node" };
+            nodes.push(nodeData);
+            restart();
+        });
+
+        connectNodesButton.addEventListener('click', () => {
+            if (currentMode === 'connect') {
+                currentMode = null;
+                selectedNode = null;
+                connectNodesButton.classList.remove('active');
+            } else {
+                currentMode = 'connect';
+                connectNodesButton.classList.add('active');
+                deleteButton.classList.remove('active');
+            }
+        });
+
+        deleteButton.addEventListener('click', () => {
+            if (selectedLinkData) {
+                if (confirm("Are you sure you want to delete the selected link?")) {
+                    links = links.filter(l => l !== selectedLinkData);
+                    selectedLink.remove();
+                    selectedLink = null;
+                    selectedLinkData = null;
+                    restart();
+                }
+            } else if (currentMode === 'delete') {
+                currentMode = null;
+                deleteButton.classList.remove('active');
+            } else {
+                currentMode = 'delete';
+                deleteButton.classList.add('active');
+                connectNodesButton.classList.remove('active');
+            }
+        });
+
+        // Reset modes when clicking on the canvas
+        svg.on("click", function (event) {
+            if (event.defaultPrevented) return; // dragged
+
+            // Deselect any selected link
+            if (selectedLink) {
+                selectedLink.classed('selected', false);
+                selectedLink = null;
+                selectedLinkData = null;
+            }
+
+            // Reset modes
+            currentMode = null;
+            selectedNode = null;
+            connectNodesButton.classList.remove('active');
+            deleteButton.classList.remove('active');
+        });
     </script>
 </body>
 </html>
