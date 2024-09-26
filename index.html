@@ -71,11 +71,13 @@
             top: 0;
             width: 100%;
             height: 100%;
-            overflow: auto;
+            overflow: hidden;
             background-color: rgba(30, 30, 30, 0.95);
         }
 
         .modal-content {
+            display: flex;
+            flex-direction: column;
             background-color: #252526;
             margin: 0;
             padding: 20px;
@@ -84,8 +86,20 @@
             height: 100%;
             box-sizing: border-box;
             color: #d4d4d4;
-            overflow: hidden;
             position: relative;
+        }
+
+        #modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        #modal-body {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-top: 10px;
         }
 
         #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button {
@@ -108,13 +122,6 @@
 
         #delete-node-button:hover {
             background-color: #e18080;
-        }
-
-        /* Positioning Save and Close buttons in the modal */
-        #modal-buttons {
-            position: absolute;
-            top: 10px;
-            right: 10px;
         }
 
         /* Toolbar button colors */
@@ -214,16 +221,16 @@
 
         /* Styles for the image size slider */
         #imageSizeControls {
-            display: none; /* Ensure it is displayed */
+            display: none;
             flex-direction: column;
             padding: 10px 0;
             align-items: center;
-            position: absolute; /* Make it positioned relative to its container */
-            z-index: 1000; /* Ensure it's on top */
-            background-color: rgba(30, 30, 30, 0.9); /* Optional: Add a background to differentiate it */
-            top: 10px; /* Adjust as needed to ensure proper placement */
-            left: 10px; /* Adjust as needed to ensure proper placement */
-            border: 1px solid #555; /* Optional: Add a border for visibility */
+            position: absolute;
+            z-index: 1000;
+            background-color: rgba(30, 30, 30, 0.9);
+            top: 10px;
+            left: 10px;
+            border: 1px solid #555;
             padding: 10px;
         }
 
@@ -362,24 +369,27 @@
                 <button id="close-button">Close</button>
                 <button id="delete-node-button">Delete Node</button>
             </div>
-            <h2>Edit Node</h2>
-            <textarea id="labelInput" placeholder="Node Label"></textarea>
-            <div id="toolbar">
-                <button id="insertImage">Insert Image</button>
-                <button onclick="formatText('bold')">Bold</button>
-                <button onclick="formatText('italic')">Italic</button>
-                <button onclick="formatText('h1')">H1</button>
-                <button onclick="formatText('h2')">H2</button>
-                <button onclick="formatText('ul')">Bullet List</button>
-                <button onclick="formatText('ol')">Numbered List</button>
-                <input type="file" id="imageInput" accept="image/*" style="display:none">
-            </div>
-            <div id="container">
-                <div id="editor">
-                    <div id="editorContent" contenteditable="true"></div>
-                    <div id="imageSizeControls">
-                        <input type="range" id="sizeSlider" min="10" max="1000" value="300">
-                        <div id="sizeValue">Width: 300px</div>
+            <!-- Modal Body -->
+            <div id="modal-body">
+                <h2>Edit Node</h2>
+                <textarea id="labelInput" placeholder="Node Label"></textarea>
+                <div id="toolbar">
+                    <button id="insertImage">Insert Image</button>
+                    <button onclick="formatText('bold')">Bold</button>
+                    <button onclick="formatText('italic')">Italic</button>
+                    <button onclick="formatText('h1')">H1</button>
+                    <button onclick="formatText('h2')">H2</button>
+                    <button onclick="formatText('ul')">Bullet List</button>
+                    <button onclick="formatText('ol')">Numbered List</button>
+                    <input type="file" id="imageInput" accept="image/*" style="display:none">
+                </div>
+                <div id="container">
+                    <div id="editor">
+                        <div id="editorContent" contenteditable="true"></div>
+                        <div id="imageSizeControls">
+                            <input type="range" id="sizeSlider" min="10" max="1000" value="300">
+                            <div id="sizeValue">Width: 300px</div>
+                        </div>
                     </div>
                 </div>
             </div>
