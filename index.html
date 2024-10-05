@@ -361,23 +361,28 @@
             background-color: #1177bb;
         }
 
-        /* Context Menu Styles */
-        #context-menu {
-            position: absolute;
-            display: none;
-            background-color: #252526;
-            border: 1px solid #333;
-            z-index: 1000;
-        }
-
-        #context-menu div {
-            padding: 8px;
+        /* Toggle Sidebar Button */
+        #toggle-sidebar-button {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background-color: #0e639c;
+            color: #ffffff;
+            border: none;
+            padding: 10px;
             cursor: pointer;
-            color: #d4d4d4;
+            font-size: 24px;
+            border-radius: 5px;
         }
 
-        #context-menu div:hover {
-            background-color: #333;
+        #toggle-sidebar-button:hover {
+            background-color: #1177bb;
+        }
+
+        /* Adjusting positions when sidebar is hidden */
+        #main-content.full-width {
+            width: 100% !important;
         }
 
         /* Responsive buttons for smaller screens */
@@ -391,6 +396,11 @@
                 width: 70px;
                 height: 70px;
                 font-size: 32px;
+            }
+
+            #toggle-sidebar-button {
+                font-size: 28px;
+                padding: 12px;
             }
         }
 
@@ -406,18 +416,9 @@
                 font-size: 36px;
             }
 
-            /* Hide sidebar on small devices */
-            #sidebar {
-                display: none;
-            }
-
-            /* Adjust main content to full width */
-            body {
-                flex-direction: column;
-            }
-
-            #main-content {
-                width: 100%;
+            #toggle-sidebar-button {
+                font-size: 32px;
+                padding: 14px;
             }
         }
     </style>
@@ -425,6 +426,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
 </head>
 <body>
+    <!-- Navigation Button -->
+    <button id="toggle-sidebar-button"><i class="fas fa-bars"></i></button>
+
     <!-- Sidebar -->
     <div id="sidebar">
         <div id="sidebar-header">
@@ -526,8 +530,9 @@
 
             // Main content dimensions
             const mainContent = document.getElementById('main-content');
-            const width = window.innerWidth - sidebar.offsetWidth;
-            const height = window.innerHeight;
+            let sidebarWidth = sidebar.offsetWidth;
+            let width = window.innerWidth - sidebarWidth;
+            let height = window.innerHeight;
 
             // Create the SVG canvas
             const svg = d3.select("#main-content")
@@ -1594,6 +1599,36 @@
                     }
                 }
             }
+
+            // Toggle Sidebar Functionality
+            const toggleSidebarButton = document.getElementById('toggle-sidebar-button');
+
+            toggleSidebarButton.addEventListener('click', function() {
+                if (sidebar.style.display === 'none' || sidebar.style.display === '') {
+                    sidebar.style.display = 'flex';
+                    toggleSidebarButton.innerHTML = '<i class="fas fa-bars"></i>';
+                } else {
+                    sidebar.style.display = 'none';
+                    toggleSidebarButton.innerHTML = '<i class="fas fa-bars"></i>';
+                }
+                // Adjust main-content width and SVG dimensions
+                adjustLayout();
+            });
+
+            function adjustLayout() {
+                let sidebarWidth = sidebar.style.display === 'none' ? 0 : sidebar.offsetWidth;
+                width = window.innerWidth - sidebarWidth;
+                height = window.innerHeight;
+                mainContent.style.width = width + 'px';
+                svg.attr("width", width).attr("height", height);
+                simulation.force("center", d3.forceCenter(width / 2, height / 2));
+                simulation.alpha(1).restart();
+            }
+
+            window.addEventListener('resize', adjustLayout);
+
+            // Initial layout adjustment
+            adjustLayout();
         </script>
     </div>
 </body>
