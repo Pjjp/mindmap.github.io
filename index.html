@@ -405,6 +405,20 @@
                 height: 80px;
                 font-size: 36px;
             }
+
+            /* Hide sidebar on small devices */
+            #sidebar {
+                display: none;
+            }
+
+            /* Adjust main content to full width */
+            body {
+                flex-direction: column;
+            }
+
+            #main-content {
+                width: 100%;
+            }
         }
     </style>
     <!-- FontAwesome for toolbar icons -->
@@ -1471,6 +1485,33 @@
                     });
                 }
             }
+
+            // Right-click context menu on the sidebar
+            const contextMenu = document.createElement('div');
+            contextMenu.id = 'context-menu';
+            document.body.appendChild(contextMenu);
+
+            sidebar.addEventListener('contextmenu', function (event) {
+                event.preventDefault();
+                contextMenu.innerHTML = '';
+                const addMarkdownOption = document.createElement('div');
+                addMarkdownOption.textContent = 'Add New Markdown File';
+                addMarkdownOption.style.padding = '8px';
+                addMarkdownOption.style.cursor = 'pointer';
+                addMarkdownOption.addEventListener('click', function () {
+                    contextMenu.style.display = 'none';
+                    addNewMarkdownFile();
+                });
+                contextMenu.appendChild(addMarkdownOption);
+
+                contextMenu.style.top = event.pageY + 'px';
+                contextMenu.style.left = event.pageX + 'px';
+                contextMenu.style.display = 'block';
+            });
+
+            document.addEventListener('click', function () {
+                contextMenu.style.display = 'none';
+            });
 
             function addNewMarkdownFile() {
                 const fileName = 'Untitled.md';
