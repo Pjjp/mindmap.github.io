@@ -446,7 +446,7 @@
     <!-- Main Content -->
     <div id="main-content">
         <!-- Control Buttons -->
-        <div style="position: absolute; top: 10px; left: 10px; z-index: 5;">
+        <div id="control-buttons" style="position: absolute; top: 10px; left: 10px; z-index: 5;">
             <button id="save-current-mindmap-button">Save</button>
             <button id="save-mindmap-button">Save As</button>
             <button id="load-mindmap-button">Load Mind Map</button>
@@ -1623,6 +1623,16 @@
                 svg.attr("width", width).attr("height", height);
                 simulation.force("center", d3.forceCenter(width / 2, height / 2));
                 simulation.alpha(1).restart();
+
+                // Adjust control buttons position
+                const controlButtons = document.getElementById('control-buttons');
+                if (sidebar.style.display === 'none' || sidebar.style.display === '') {
+                    // Sidebar is hidden, move control buttons to avoid overlap
+                    controlButtons.style.left = '70px'; // Adjust as needed
+                } else {
+                    // Sidebar is visible, reset control buttons position
+                    controlButtons.style.left = '260px'; // Adjust as needed (sidebar width + 10px margin)
+                }
             }
 
             window.addEventListener('resize', adjustLayout);
