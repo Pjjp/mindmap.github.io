@@ -203,7 +203,7 @@
             padding-top: 10px;
         }
 
-        #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button, #open-folder-button, #save-current-mindmap-button, #delete-markdown-button, #add-markdown-button {
+        #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button, #open-folder-button, #save-current-mindmap-button, #delete-markdown-button, #add-markdown-button, #new-mindmap-button, #rename-mindmap-button, #delete-mindmap-button {
             background-color: #0e639c;
             color: #ffffff;
             border: none;
@@ -213,15 +213,15 @@
             font-size: 14px;
         }
 
-        #delete-node-button, #delete-markdown-button {
+        #delete-node-button, #delete-markdown-button, #delete-mindmap-button {
             background-color: #d16969;
         }
 
-        #save-button:hover, #close-button:hover, #delete-node-button:hover, #save-mindmap-button:hover, #load-mindmap-button:hover, #instructions-button:hover, #open-folder-button:hover, #save-current-mindmap-button:hover, #delete-markdown-button:hover, #add-markdown-button:hover {
+        #save-button:hover, #close-button:hover, #delete-node-button:hover, #save-mindmap-button:hover, #load-mindmap-button:hover, #instructions-button:hover, #open-folder-button:hover, #save-current-mindmap-button:hover, #delete-markdown-button:hover, #add-markdown-button:hover, #new-mindmap-button:hover, #rename-mindmap-button:hover, #delete-mindmap-button:hover {
             background-color: #1177bb;
         }
 
-        #delete-node-button:hover, #delete-markdown-button:hover {
+        #delete-node-button:hover, #delete-markdown-button:hover, #delete-mindmap-button:hover {
             background-color: #e18080;
         }
 
@@ -387,7 +387,7 @@
 
         /* Responsive buttons for smaller screens */
         @media screen and (max-width: 800px) {
-            #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button, #open-folder-button, #save-current-mindmap-button, #delete-markdown-button, #add-markdown-button {
+            #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button, #open-folder-button, #save-current-mindmap-button, #delete-markdown-button, #add-markdown-button, #new-mindmap-button, #rename-mindmap-button, #delete-mindmap-button {
                 font-size: 18px;
                 padding: 15px 25px;
             }
@@ -405,7 +405,7 @@
         }
 
         @media screen and (max-width: 600px) {
-            #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button, #open-folder-button, #save-current-mindmap-button, #delete-markdown-button, #add-markdown-button {
+            #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button, #open-folder-button, #save-current-mindmap-button, #delete-markdown-button, #add-markdown-button, #new-mindmap-button, #rename-mindmap-button, #delete-mindmap-button {
                 font-size: 20px;
                 padding: 20px 30px;
             }
@@ -447,9 +447,12 @@
     <div id="main-content">
         <!-- Control Buttons -->
         <div id="control-buttons" style="position: absolute; top: 10px; left: 10px; z-index: 5;">
+            <button id="new-mindmap-button">New Mind Map</button>
             <button id="save-current-mindmap-button">Save</button>
             <button id="save-mindmap-button">Save As</button>
             <button id="load-mindmap-button">Load Mind Map</button>
+            <button id="rename-mindmap-button">Rename Mind Map</button>
+            <button id="delete-mindmap-button">Delete Mind Map</button>
             <button id="instructions-button">Instructions</button>
             <div id="instructionsPanel">
                 <p>Instructions:</p>
@@ -527,6 +530,7 @@
             let currentFileHandle = null;
             let currentMarkdownFileHandle = null;
             let currentDirectoryHandle = null;
+            let currentListItem = null; // Keep track of the currently selected list item
 
             // Main content dimensions
             const mainContent = document.getElementById('main-content');
@@ -829,6 +833,8 @@
             const closeButton = document.getElementById("close-button");
             const deleteNodeButton = document.getElementById("delete-node-button");
             const deleteMarkdownButton = document.getElementById("delete-markdown-button");
+            let renameMindMapButton = document.getElementById("rename-mindmap-button");
+            let deleteMindMapButton = document.getElementById("delete-mindmap-button");
             const labelInput = document.getElementById("labelInput");
             let currentNode = null;
 
@@ -942,7 +948,7 @@
                                     // Delete old file
                                     await currentDirectoryHandle.removeEntry(originalFileName);
                                     // Update fileHandles array
-                                    fileHandles = fileHandles.map(fh => fh.handle === fileHandle ? { name: updatedLabel, handle: newFileHandle, type: 'markdown' } : fh);
+                                    fileHandles = fileHandles.map(fh => fh.handle === fileHandle ? { ...fh, name: updatedLabel, handle: newFileHandle } : fh);
                                     // Update listItem
                                     listItem.textContent = updatedLabel;
                                     listItem.dataset.filename = updatedLabel;
@@ -989,6 +995,7 @@
             const saveMindMapButton = document.getElementById("save-mindmap-button");
             const loadMindMapButton = document.getElementById("load-mindmap-button");
             const saveCurrentMindMapButton = document.getElementById("save-current-mindmap-button");
+            const newMindMapButton = document.getElementById("new-mindmap-button");
 
             saveMindMapButton.onclick = async function() {
                 const mindMapData = {
@@ -1438,7 +1445,6 @@
                         for await (const [name, handle] of directoryHandle) {
                             if (handle.kind === 'file' && (name.endsWith('.zip') || name.endsWith('.md'))) {
                                 const type = name.endsWith('.zip') ? 'mindmap' : 'markdown';
-                                fileHandles.push({ name, handle, type });
                                 const li = document.createElement('li');
                                 li.textContent = name;
                                 li.dataset.filename = name; // Store the actual filename
@@ -1455,6 +1461,7 @@
                                     showFileContextMenu(event, handle, li, type);
                                 });
                                 mindmapList.appendChild(li);
+                                fileHandles.push({ name, handle, type, listItem: li });
                             }
                         }
                     } catch (err) {
@@ -1474,14 +1481,14 @@
                 // Add active class to selected item
                 listItem.classList.add('active');
 
-                // Load the file based on its type
+                // Set currentFileHandle and currentListItem
                 if (fileType === 'mindmap') {
                     currentFileHandle = fileHandle;
+                    currentListItem = listItem;
                     fileHandle.getFile().then(file => {
                         loadMindMapFile(file);
                     });
                 } else if (fileType === 'markdown') {
-                    // Open the markdown file in the editor
                     currentMarkdownFileHandle = fileHandle;
                     fileHandle.getFile().then(file => {
                         file.text().then(content => {
@@ -1522,8 +1529,6 @@
                 const fileName = 'Untitled.md';
                 if (currentDirectoryHandle) {
                     currentDirectoryHandle.getFileHandle(fileName, { create: true }).then(fileHandle => {
-                        fileHandles.push({ name: fileName, handle: fileHandle, type: 'markdown' });
-                        // Add to the sidebar list
                         const li = document.createElement('li');
                         li.textContent = fileName;
                         li.dataset.filename = fileName; // Store the actual filename
@@ -1540,7 +1545,7 @@
                             showFileContextMenu(event, fileHandle, li, 'markdown');
                         });
                         mindmapList.appendChild(li);
-                        // Open the new markdown file immediately
+                        fileHandles.push({ name: fileName, handle: fileHandle, type: 'markdown', listItem: li });
                         openMarkdownFile('', fileHandle, li);
                     }).catch(err => {
                         console.error(err);
@@ -1557,7 +1562,6 @@
             function showFileContextMenu(event, fileHandle, listItem, fileType) {
                 contextMenu.innerHTML = '';
 
-                // For markdown files, we no longer need the rename option
                 if (fileType !== 'markdown') {
                     const renameOption = document.createElement('div');
                     renameOption.textContent = 'Rename';
@@ -1593,9 +1597,72 @@
                             currentMarkdownFileHandle = null;
                             editorContent.innerHTML = '';
                         }
+                        if (currentFileHandle === fileHandle) {
+                            currentFileHandle = null;
+                            nodes = [];
+                            links = [];
+                            restart();
+                        }
                     } catch (err) {
                         console.error(err);
                         alert('Failed to delete file.');
+                    }
+                }
+            }
+
+            // Rename File Function
+            async function renameFile(fileHandle, listItem, fileType) {
+                if (currentDirectoryHandle) {
+                    let newFileName = prompt("Enter new name for the file:", listItem.dataset.filename);
+                    if (newFileName) {
+                        // Ensure filename ends with correct extension
+                        if (fileType === 'mindmap' && !newFileName.endsWith('.zip')) {
+                            newFileName += '.zip';
+                        } else if (fileType === 'markdown' && !newFileName.endsWith('.md')) {
+                            newFileName += '.md';
+                        }
+                        try {
+                            // Check if a file with the new name already exists
+                            await currentDirectoryHandle.getFileHandle(newFileName);
+                            alert('A file with this name already exists.');
+                        } catch (err) {
+                            // If error, the file doesn't exist, proceed to rename
+                            // Create new file with updated name
+                            const newFileHandle = await currentDirectoryHandle.getFileHandle(newFileName, { create: true });
+                            // Copy content from the current file to the new file
+                            const writable = await newFileHandle.createWritable();
+                            const file = await fileHandle.getFile();
+                            const arrayBuffer = await file.arrayBuffer();
+                            await writable.write(arrayBuffer);
+                            await writable.close();
+                            // Delete old file
+                            await currentDirectoryHandle.removeEntry(listItem.dataset.filename);
+                            // Update fileHandles array
+                            const fh = fileHandles.find(fh => fh.handle === fileHandle);
+                            if (fh) {
+                                fh.name = newFileName;
+                                fh.handle = newFileHandle;
+                            }
+                            // Update listItem
+                            listItem.textContent = newFileName;
+                            listItem.dataset.filename = newFileName;
+                            const fileTypeLabel = document.createElement('span');
+                            fileTypeLabel.textContent = fileType === 'mindmap' ? ' (Mind Map)' : ' (Markdown)';
+                            fileTypeLabel.className = 'file-type-label';
+                            listItem.appendChild(fileTypeLabel);
+                            // Update event listeners
+                            listItem.onclick = () => {
+                                selectFile(newFileHandle, listItem, fileType);
+                            };
+                            listItem.oncontextmenu = (event) => {
+                                event.preventDefault();
+                                showFileContextMenu(event, newFileHandle, listItem, fileType);
+                            };
+                            // Update currentFileHandle if needed
+                            if (currentFileHandle === fileHandle) {
+                                currentFileHandle = newFileHandle;
+                            }
+                        }
                     }
                 }
             }
@@ -1639,6 +1706,145 @@
 
             // Initial layout adjustment
             adjustLayout();
+
+            // New Mind Map Functionality
+            newMindMapButton.onclick = async function() {
+                // Optionally, check for unsaved changes here
+
+                // Clear nodes and links
+                nodes = [];
+                links = [];
+                restart();
+
+                // Reset currentFileHandle
+                currentFileHandle = null;
+
+                // Prompt the user to pick a location and name for the new mind map file
+                if (window.showSaveFilePicker) {
+                    try {
+                        const options = {
+                            suggestedName: 'mindmap.zip',
+                            types: [{
+                                description: 'ZIP Files',
+                                accept: {'application/zip': ['.zip']},
+                            }],
+                        };
+                        const handle = await window.showSaveFilePicker(options);
+                        currentFileHandle = handle; // Store the handle
+
+                        // Add the new mind map to the fileHandles array
+                        const li = document.createElement('li');
+                        li.textContent = handle.name;
+                        li.dataset.filename = handle.name;
+                        const fileTypeLabel = document.createElement('span');
+                        fileTypeLabel.textContent = ' (Mind Map)';
+                        fileTypeLabel.className = 'file-type-label';
+                        li.appendChild(fileTypeLabel);
+
+                        li.addEventListener('click', () => {
+                            selectFile(handle, li, 'mindmap');
+                        });
+                        li.addEventListener('contextmenu', (event) => {
+                            event.preventDefault();
+                            showFileContextMenu(event, handle, li, 'mindmap');
+                        });
+                        mindmapList.appendChild(li);
+                        fileHandles.push({ name: handle.name, handle: handle, type: 'mindmap', listItem: li });
+
+                        // Optionally, save the empty mind map file immediately
+                        saveCurrentMindMapButton.onclick();
+                    } catch (err) {
+                        console.error(err);
+                        alert('Failed to create new mind map.');
+                    }
+                } else {
+                    alert('Your browser does not support the File System Access API.');
+                }
+            };
+
+            // Rename Mind Map Functionality
+            renameMindMapButton.onclick = async function() {
+                if (currentFileHandle && currentDirectoryHandle) {
+                    let newFileName = prompt("Enter new name for the mind map:", currentFileHandle.name);
+                    if (newFileName) {
+                        if (!newFileName.endsWith('.zip')) {
+                            newFileName += '.zip';
+                        }
+                        try {
+                            await currentDirectoryHandle.getFileHandle(newFileName);
+                            alert('A file with this name already exists.');
+                        } catch (err) {
+                            const oldFileHandle = currentFileHandle; // Store the old file handle
+                            const newFileHandle = await currentDirectoryHandle.getFileHandle(newFileName, { create: true });
+                            const writable = await newFileHandle.createWritable();
+                            const file = await currentFileHandle.getFile();
+                            const arrayBuffer = await file.arrayBuffer();
+                            await writable.write(arrayBuffer);
+                            await writable.close();
+                            await currentDirectoryHandle.removeEntry(currentFileHandle.name);
+                            currentFileHandle = newFileHandle;
+                            updateFileListAfterRename(newFileHandle, newFileName, oldFileHandle); // Pass oldFileHandle
+                        }
+                    }
+                } else {
+                    alert('No mind map is currently loaded.');
+                }
+            };
+
+            function updateFileListAfterRename(newFileHandle, newFileName, oldFileHandle) {
+                const fileHandleObj = fileHandles.find(fh => fh.handle === oldFileHandle);
+                if (fileHandleObj) {
+                    fileHandleObj.name = newFileName;
+                    fileHandleObj.handle = newFileHandle;
+                    const listItem = fileHandleObj.listItem;
+                    listItem.textContent = newFileName;
+                    listItem.dataset.filename = newFileName;
+                    const fileTypeLabel = document.createElement('span');
+                    fileTypeLabel.textContent = ' (Mind Map)';
+                    fileTypeLabel.className = 'file-type-label';
+                    listItem.appendChild(fileTypeLabel);
+                    listItem.onclick = () => {
+                        selectFile(newFileHandle, listItem, 'mindmap');
+                    };
+                    listItem.oncontextmenu = (event) => {
+                        event.preventDefault();
+                        showFileContextMenu(event, newFileHandle, listItem, 'mindmap');
+                    };
+                }
+            }
+
+            // Delete Mind Map Functionality
+            deleteMindMapButton.onclick = async function() {
+                if (currentFileHandle && currentDirectoryHandle) {
+                    if (confirm("Are you sure you want to delete the current mind map?")) {
+                        try {
+                            await currentDirectoryHandle.removeEntry(currentFileHandle.name);
+                            updateFileListAfterDelete(currentFileHandle);
+                            nodes = [];
+                            links = [];
+                            restart();
+                            currentFileHandle = null;
+                            alert('Mind map deleted successfully.');
+                        } catch (err) {
+                            console.error(err);
+                            alert('Failed to delete mind map.');
+                        }
+                    }
+                } else {
+                    alert('No mind map is currently loaded.');
+                }
+            };
+
+            function updateFileListAfterDelete(deletedFileHandle) {
+                const index = fileHandles.findIndex(fh => fh.handle === deletedFileHandle);
+                if (index !== -1) {
+                    const fileHandleObj = fileHandles[index];
+                    fileHandles.splice(index,1);
+                    const listItem = fileHandleObj.listItem;
+                    mindmapList.removeChild(listItem);
+                }
+            }
+
         </script>
     </div>
 </body>
