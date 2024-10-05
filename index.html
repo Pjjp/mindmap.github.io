@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Mind Map Tool - Enhanced Version</title>
+    <title>Mind Map Tool - Enhanced Version with Sidebar and Markdown Editor</title>
     <style>
         body {
             margin: 0;
@@ -10,6 +10,107 @@
             background-color: #1e1e1e;
             color: #d4d4d4;
             font-family: sans-serif;
+            display: flex;
+        }
+
+        /* Sidebar styles */
+        #sidebar {
+            width: 250px;
+            background-color: #252526;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #333;
+            overflow: hidden;
+        }
+
+        #sidebar-header {
+            padding: 10px;
+            background-color: #1e1e1e;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #sidebar-header h2 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        #open-folder-button {
+            background-color: #0e639c;
+            color: #ffffff;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        #open-folder-button:hover {
+            background-color: #1177bb;
+        }
+
+        #file-list {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        #file-list ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #file-list li {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        #file-list li:hover {
+            background-color: #333;
+        }
+
+        #file-list li.active {
+            background-color: #444;
+        }
+
+        #file-list .file-type-label {
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* Sidebar footer styles */
+        #sidebar-footer {
+            padding: 10px;
+            background-color: #1e1e1e;
+            border-top: 1px solid #333;
+        }
+
+        #add-markdown-button {
+            width: 100%;
+            background-color: #0e639c;
+            color: #ffffff;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        #add-markdown-button:hover {
+            background-color: #1177bb;
+        }
+
+        /* Main content styles */
+        #main-content {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
         }
 
         .node {
@@ -102,7 +203,7 @@
             padding-top: 10px;
         }
 
-        #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button {
+        #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button, #open-folder-button, #save-current-mindmap-button, #delete-markdown-button, #add-markdown-button {
             background-color: #0e639c;
             color: #ffffff;
             border: none;
@@ -112,63 +213,19 @@
             font-size: 14px;
         }
 
-        #delete-node-button {
+        #delete-node-button, #delete-markdown-button {
             background-color: #d16969;
         }
 
-        #save-button:hover, #close-button:hover, #delete-node-button:hover, #save-mindmap-button:hover, #load-mindmap-button:hover, #instructions-button:hover {
+        #save-button:hover, #close-button:hover, #delete-node-button:hover, #save-mindmap-button:hover, #load-mindmap-button:hover, #instructions-button:hover, #open-folder-button:hover, #save-current-mindmap-button:hover, #delete-markdown-button:hover, #add-markdown-button:hover {
             background-color: #1177bb;
         }
 
-        #delete-node-button:hover {
+        #delete-node-button:hover, #delete-markdown-button:hover {
             background-color: #e18080;
         }
 
-        /* Toolbar button colors */
-        .editor-toolbar a {
-            color: #d4d4d4 !important;
-        }
-
-        .editor-toolbar {
-            background-color: #333;
-            border-bottom: 1px solid #444;
-        }
-
-        .editor-toolbar a:hover {
-            color: #fff !important;
-        }
-
-        .editor-statusbar {
-            background-color: #333;
-            border-top: 1px solid #444;
-            color: #ccc;
-        }
-
-        /* Editor styles */
-        .CodeMirror {
-            background-color: #1e1e1e !important;
-            color: #d4d4d4;
-        }
-
-        .CodeMirror-gutters {
-            background-color: #1e1e1e !important;
-            border-right: 0;
-        }
-
-        /* Changed cursor color to white */
-        .CodeMirror-cursor {
-            border-left: 1px solid #ffffff;
-        }
-
-        .CodeMirror-lines {
-            color: #d4d4d4;
-        }
-
-        .CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {
-            background-color: #1e1e1e !important;
-        }
-
-        /* Markdown Editor Styles */
+        /* Editor Styles */
         #toolbar {
             padding: 10px;
             background-color: #444;
@@ -304,9 +361,28 @@
             background-color: #1177bb;
         }
 
+        /* Context Menu Styles */
+        #context-menu {
+            position: absolute;
+            display: none;
+            background-color: #252526;
+            border: 1px solid #333;
+            z-index: 1000;
+        }
+
+        #context-menu div {
+            padding: 8px;
+            cursor: pointer;
+            color: #d4d4d4;
+        }
+
+        #context-menu div:hover {
+            background-color: #333;
+        }
+
         /* Responsive buttons for smaller screens */
         @media screen and (max-width: 800px) {
-            #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button {
+            #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button, #open-folder-button, #save-current-mindmap-button, #delete-markdown-button, #add-markdown-button {
                 font-size: 18px;
                 padding: 15px 25px;
             }
@@ -319,7 +395,7 @@
         }
 
         @media screen and (max-width: 600px) {
-            #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button {
+            #save-button, #close-button, #delete-node-button, #save-mindmap-button, #load-mindmap-button, #instructions-button, #open-folder-button, #save-current-mindmap-button, #delete-markdown-button, #add-markdown-button {
                 font-size: 20px;
                 padding: 20px 30px;
             }
@@ -331,819 +407,1153 @@
             }
         }
     </style>
-    <!-- SimpleMDE CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplemde@1.11.2/dist/simplemde.min.css">
     <!-- FontAwesome for toolbar icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
 </head>
 <body>
-    <!-- Control Buttons -->
-    <div style="position: absolute; top: 10px; left: 10px; z-index: 5;">
-        <button id="save-mindmap-button">Save Mind Map</button>
-        <button id="load-mindmap-button">Load Mind Map</button>
-        <button id="instructions-button">Instructions</button>
-        <div id="instructionsPanel">
-            <p>Instructions:</p>
-            <ul>
-                <li>Hover over a node to highlight it and its connections.</li>
-                <li>Use the buttons below to add nodes, connect nodes, and delete.</li>
-                <li>Double-click a node to edit content and label.</li>
-                <li>Click a link to select it, then press the trash button to remove it.</li>
-            </ul>
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <h2>Files</h2>
+            <button id="open-folder-button">Open Folder</button>
+        </div>
+        <div id="file-list">
+            <ul id="mindmap-list"></ul>
+        </div>
+        <div id="sidebar-footer">
+            <button id="add-markdown-button">Add New Markdown File</button>
         </div>
     </div>
 
-    <!-- Floating Action Buttons -->
-    <div id="action-buttons">
-        <button id="add-node-button"><i class="fas fa-plus"></i></button>
-        <button id="connect-nodes-button"><i class="fas fa-link"></i></button>
-        <button id="delete-button"><i class="fas fa-trash"></i></button>
-    </div>
-
-    <!-- Modal for editing markdown and label -->
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <!-- Positioning Save and Close buttons -->
-            <div id="modal-buttons">
-                <button id="save-button">Save</button>
-                <button id="close-button">Close</button>
-                <button id="delete-node-button">Delete Node</button>
+    <!-- Main Content -->
+    <div id="main-content">
+        <!-- Control Buttons -->
+        <div style="position: absolute; top: 10px; left: 10px; z-index: 5;">
+            <button id="save-current-mindmap-button">Save</button>
+            <button id="save-mindmap-button">Save As</button>
+            <button id="load-mindmap-button">Load Mind Map</button>
+            <button id="instructions-button">Instructions</button>
+            <div id="instructionsPanel">
+                <p>Instructions:</p>
+                <ul>
+                    <li>Hover over a node to highlight it and its connections.</li>
+                    <li>Use the buttons below to add nodes, connect nodes, and delete.</li>
+                    <li>Double-click a node to edit content and label.</li>
+                    <li>Click a link to select it, then press the trash button to remove it.</li>
+                </ul>
             </div>
-            <!-- Modal Body -->
-            <div id="modal-body">
-                <h2>Edit Node</h2>
-                <textarea id="labelInput" placeholder="Node Label"></textarea>
-                <div id="toolbar">
-                    <button id="insertImage">Insert Image</button>
-                    <button onclick="formatText('bold')">Bold</button>
-                    <button onclick="formatText('italic')">Italic</button>
-                    <button onclick="formatText('h1')">H1</button>
-                    <button onclick="formatText('h2')">H2</button>
-                    <button onclick="formatText('ul')">Bullet List</button>
-                    <button onclick="formatText('ol')">Numbered List</button>
-                    <input type="file" id="imageInput" accept="image/*" style="display:none">
+        </div>
+
+        <!-- Floating Action Buttons -->
+        <div id="action-buttons">
+            <button id="add-node-button"><i class="fas fa-plus"></i></button>
+            <button id="connect-nodes-button"><i class="fas fa-link"></i></button>
+            <button id="delete-button"><i class="fas fa-trash"></i></button>
+        </div>
+
+        <!-- Modal for editing node content and markdown files -->
+        <div id="modal" class="modal">
+            <div class="modal-content">
+                <!-- Positioning Save and Close buttons -->
+                <div id="modal-buttons">
+                    <button id="save-button">Save</button>
+                    <button id="close-button">Close</button>
+                    <button id="delete-node-button">Delete Node</button>
+                    <button id="delete-markdown-button">Delete</button>
                 </div>
-                <div id="container">
-                    <div id="editor">
-                        <div id="editorContent" contenteditable="true"></div>
-                        <div id="imageSizeControls">
-                            <input type="range" id="sizeSlider" min="10" max="1000" value="300">
-                            <div id="sizeValue">Width: 300px</div>
+                <!-- Modal Body -->
+                <div id="modal-body">
+                    <h2 id="modal-title">Edit Node</h2>
+                    <div id="node-label-container">
+                        <textarea id="labelInput" placeholder="Node Label"></textarea>
+                    </div>
+                    <div id="toolbar">
+                        <button id="insertImage">Insert Image</button>
+                        <button onclick="formatText('bold')">Bold</button>
+                        <button onclick="formatText('italic')">Italic</button>
+                        <button onclick="formatText('h1')">H1</button>
+                        <button onclick="formatText('h2')">H2</button>
+                        <button onclick="formatText('ul')">Bullet List</button>
+                        <button onclick="formatText('ol')">Numbered List</button>
+                        <input type="file" id="imageInput" accept="image/*" style="display:none">
+                    </div>
+                    <div id="container">
+                        <div id="editor">
+                            <div id="editorContent" contenteditable="true"></div>
+                            <div id="imageSizeControls">
+                                <input type="range" id="sizeSlider" min="10" max="1000" value="300">
+                                <div id="sizeValue">Width: 300px</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- D3.js library -->
-    <script src="https://d3js.org/d3.v6.min.js"></script>
-    <!-- SimpleMDE JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/simplemde@1.11.2/dist/simplemde.min.js"></script>
-    <!-- FileSaver.js for saving files -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <!-- JSZip for creating ZIP files -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
-    <!-- JSZip-utils for loading ZIP files -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip-utils/0.1.0/jszip-utils.min.js"></script>
-    <!-- CodeMirror Theme JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/dracula.min.js"></script>
+        <!-- D3.js library -->
+        <script src="https://d3js.org/d3.v6.min.js"></script>
+        <!-- FileSaver.js for saving files -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+        <!-- JSZip for creating ZIP files -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+        <!-- JSZip-utils for loading ZIP files -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip-utils/0.1.0/jszip-utils.min.js"></script>
 
-    <script>
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        <script>
+            const sidebar = document.getElementById('sidebar');
+            const mindmapList = document.getElementById('mindmap-list');
+            const openFolderButton = document.getElementById('open-folder-button');
+            const addMarkdownButton = document.getElementById('add-markdown-button'); // New button
+            let currentMindMapHandle = null;
+            let fileHandles = [];
+            let currentFileHandle = null;
+            let currentMarkdownFileHandle = null;
+            let currentDirectoryHandle = null;
 
-        // Create the SVG canvas
-        const svg = d3.select("body")
-            .append("svg")
-            .attr("width", width)
-            .attr("height", height)
-            .style("background-color", "#1e1e1e");
+            // Main content dimensions
+            const mainContent = document.getElementById('main-content');
+            const width = window.innerWidth - sidebar.offsetWidth;
+            const height = window.innerHeight;
 
-        // Add a group element to SVG
-        const g = svg.append("g");
+            // Create the SVG canvas
+            const svg = d3.select("#main-content")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .style("background-color", "#1e1e1e");
 
-        // Enable zoom and pan
-        svg.call(d3.zoom()
-            .scaleExtent([0.5, 8])
-            .on("zoom", (event) => {
-                g.attr("transform", event.transform);
-            }));
+            // Add a group element to SVG
+            const g = svg.append("g");
 
-        // Initialize nodes and links data
-        let nodes = [];
-        let links = [];
+            // Enable zoom and pan
+            svg.call(d3.zoom()
+                .scaleExtent([0.5, 8])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                }));
 
-        // Initialize the force simulation
-        const simulation = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(links).distance(180).id(d => d.id))
-            .force("charge", d3.forceManyBody().strength(-20))
-            .force("center", d3.forceCenter(width / 2, height / 2))
-            .force("collide", d3.forceCollide().radius(d => d.radius + 5).iterations(2));
+            // Initialize nodes and links data
+            let nodes = [];
+            let links = [];
 
-        let link = g.append("g")
-            .attr("class", "links")
-            .selectAll(".link");
+            // Initialize the force simulation
+            const simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links).distance(180).id(d => d.id))
+                .force("charge", d3.forceManyBody().strength(-20))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collide", d3.forceCollide().radius(d => d.radius + 5).iterations(2));
 
-        let node = g.append("g")
-            .attr("class", "nodes")
-            .selectAll(".node");
+            let link = g.append("g")
+                .attr("class", "links")
+                .selectAll(".link");
 
-        let selectedNode = null;
-        let selectedLink = null;
-        let selectedLinkData = null;
-        let currentMode = null; // 'connect', 'delete', or null
+            let node = g.append("g")
+                .attr("class", "nodes")
+                .selectAll(".node");
 
-        // Function to calculate node degrees and set radii
-        function calculateNodeDegrees() {
-            let minDegree = Infinity;
-            let maxDegree = -Infinity;
+            let selectedNode = null;
+            let selectedLink = null;
+            let selectedLinkData = null;
+            let currentMode = null; // 'connect', 'delete', or null
 
-            nodes.forEach(function (node) {
-                node.degree = links.reduce(function (count, link) {
-                    if (link.source === node || link.target === node) {
-                        return count + 1;
+            // Function to calculate node degrees and set radii
+            function calculateNodeDegrees() {
+                let minDegree = Infinity;
+                let maxDegree = -Infinity;
+
+                nodes.forEach(function (node) {
+                    node.degree = links.reduce(function (count, link) {
+                        if (link.source === node || link.target === node) {
+                            return count + 1;
+                        }
+                        return count;
+                    }, 0);
+
+                    if (node.degree < minDegree) minDegree = node.degree;
+                    if (node.degree > maxDegree) maxDegree = node.degree;
+                });
+
+                // Now set the radius based on degree, using logarithmic scaling
+                const minRadius = 15;
+                const maxRadius = 20; // Slightly bigger than minRadius
+
+                nodes.forEach(function (node) {
+                    if (minDegree === maxDegree) {
+                        // All nodes have the same degree
+                        node.radius = (minRadius + maxRadius) / 2;
+                    } else {
+                        // Logarithmic scaling
+                        const degreeLog = Math.log(node.degree + 1);
+                        const minDegreeLog = Math.log(minDegree + 1);
+                        const maxDegreeLog = Math.log(maxDegree + 1);
+                        node.radius = minRadius + (degreeLog - minDegreeLog) * (maxRadius - minRadius) / (maxDegreeLog - minDegreeLog);
                     }
-                    return count;
-                }, 0);
+                });
+            }
 
-                if (node.degree < minDegree) minDegree = node.degree;
-                if (node.degree > maxDegree) maxDegree = node.degree;
+            // Update and restart the simulation
+            function restart() {
+                // Calculate node degrees and radii
+                calculateNodeDegrees();
+
+                // Update nodes
+                node = node.data(nodes, d => d.id);
+
+                node.exit().remove();
+
+                const nodeEnter = node.enter().append("g")
+                    .attr("class", "node")
+                    .on("click", function (event, d) {
+                        event.stopPropagation(); // prevent svg click
+
+                        if (currentMode === 'connect') {
+                            if (selectedNode && selectedNode !== d) {
+                                // Create a link between selectedNode and d
+                                links.push({ source: selectedNode, target: d });
+                                selectedNode = null;
+                                currentMode = null;
+                                connectNodesButton.classList.remove('active');
+                                restart();
+                            } else {
+                                selectedNode = d;
+                            }
+                        } else if (currentMode === 'delete') {
+                            if (confirm("Are you sure you want to delete this node?")) {
+                                // Remove node and connected links
+                                nodes = nodes.filter(n => n !== d);
+                                links = links.filter(l => l.source !== d && l.target !== d);
+                                currentMode = null;
+                                deleteButton.classList.remove('active');
+                                restart();
+                            }
+                        } else {
+                            openContentModal(d);
+                        }
+                    })
+                    .on("dblclick", function(event, d) {
+                        openContentModal(d);
+                    })
+                    .on("mouseover", function (event, d) {
+                        hoverNode(d);
+                    })
+                    .on("mouseout", function (event, d) {
+                        unhoverNode();
+                    })
+                    .call(drag(simulation));
+
+                nodeEnter.append("circle")
+                    .attr("r", d => d.radius)
+                    .attr("fill", d => d.content ? "#6a9955" : "#3c3c3c");
+
+                nodeEnter.append("text")
+                    .attr("dy", function(d) {
+                        const lines = (d.label || "Node").split('\n');
+                        return -(lines.length - 1) * 7;
+                    })
+                    .attr("x", d => d.radius + 5)
+                    .selectAll("tspan")
+                    .data(function(d) {
+                        return (d.label || "Node").split('\n');
+                    })
+                    .enter()
+                    .append("tspan")
+                    .attr("x", 0)
+                    .attr("dy", "1.2em")
+                    .text(function(line) { return line; });
+
+                node = nodeEnter.merge(node);
+
+                // Update node circles with new radii
+                node.select("circle")
+                    .attr("r", d => d.radius);
+
+                // Update node labels position and content
+                node.select("text")
+                    .attr("dy", function(d) {
+                        const lines = (d.label || "Node").split('\n');
+                        return -(lines.length - 1) * 7;
+                    })
+                    .selectAll("tspan")
+                    .data(function(d) {
+                        return (d.label || "Node").split('\n');
+                    })
+                    .join(
+                        enter => enter.append("tspan")
+                            .attr("x", 0)
+                            .attr("dy", "1.2em")
+                            .text(function(line) { return line; }),
+                        update => update.text(function(line) { return line; }),
+                        exit => exit.remove()
+                    );
+
+                // Update links
+                link = link.data(links, d => d.source.id + "-" + d.target.id);
+
+                link.exit().remove();
+
+                link = link.enter().append("line")
+                    .attr("class", "link")
+                    .on("click", function(event, d) {
+                        event.stopPropagation();
+                        if (currentMode === 'delete') {
+                            if (confirm("Are you sure you want to delete this link?")) {
+                                links = links.filter(l => l !== d);
+                                currentMode = null;
+                                deleteButton.classList.remove('active');
+                                restart();
+                            }
+                        } else {
+                            selectLink(d3.select(this), d);
+                        }
+                    })
+                    .merge(link);
+
+                // Restart simulation
+                simulation.nodes(nodes);
+                simulation.force("link").links(links);
+                simulation.alpha(1).restart();
+            }
+
+            // Update positions on each simulation tick
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node
+                    .attr("transform", d => `translate(${d.x},${d.y})`);
             });
 
-            // Now set the radius based on degree, using logarithmic scaling
-            const minRadius = 15;
-            const maxRadius = 20; // Slightly bigger than minRadius
+            // Drag behavior
+            function drag(simulation) {
+                function dragstarted(event, d) {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    d.fx = d.x;
+                    d.fy = d.y;
+                }
 
-            nodes.forEach(function (node) {
-                if (minDegree === maxDegree) {
-                    // All nodes have the same degree
-                    node.radius = (minRadius + maxRadius) / 2;
+                function dragged(event, d) {
+                    d.fx = event.x;
+                    d.fy = event.y;
+                }
+
+                function dragended(event, d) {
+                    if (!event.active) simulation.alphaTarget(0);
+                    d.fx = null;
+                    d.fy = null;
+                }
+
+                return d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended);
+            }
+
+            // Hover behavior
+            function hoverNode(d) {
+                node.classed('blurred', n => !isConnected(d, n));
+                link.classed('blurred', l => l.source !== d && l.target !== d);
+                node.classed('hovered', n => n === d);
+                link.classed('highlighted', l => l.source === d || l.target === d);
+            }
+
+            function unhoverNode() {
+                node.classed('blurred', false);
+                link.classed('blurred', false);
+                node.classed('hovered', false);
+                link.classed('highlighted', false);
+            }
+
+            function isConnected(a, b) {
+                return links.some(l => (l.source === a && l.target === b) || (l.source === b && l.target === a)) || a === b;
+            }
+
+            // Handle link selection
+            function selectLink(linkElement, linkData) {
+                // Deselect any previously selected link
+                if (selectedLink) {
+                    selectedLink.classed('selected', false);
+                }
+                if (selectedLink === linkElement) {
+                    // If the link is already selected, deselect it
+                    selectedLink = null;
+                    selectedLinkData = null;
                 } else {
-                    // Logarithmic scaling
-                    const degreeLog = Math.log(node.degree + 1);
-                    const minDegreeLog = Math.log(minDegree + 1);
-                    const maxDegreeLog = Math.log(maxDegree + 1);
-                    node.radius = minRadius + (degreeLog - minDegreeLog) * (maxRadius - minRadius) / (maxDegreeLog - minDegreeLog);
+                    // Select the new link
+                    selectedLink = linkElement;
+                    selectedLinkData = linkData;
+                    selectedLink.classed('selected', true);
+                }
+            }
+
+            // Handle keydown events for deleting links
+            window.addEventListener('keydown', function(event) {
+                if (event.key === 'Delete' || event.key === 'Backspace') {
+                    if (selectedLinkData) {
+                        if (confirm("Are you sure you want to delete this link?")) {
+                            // Remove the link
+                            links = links.filter(l => l !== selectedLinkData);
+                            selectedLink.remove();
+                            selectedLink = null;
+                            selectedLinkData = null;
+                            restart();
+                        }
+                    }
                 }
             });
-        }
 
-        // Update and restart the simulation
-        function restart() {
-            // Calculate node degrees and radii
-            calculateNodeDegrees();
+            // Modal handling for content and label
+            const modal = document.getElementById("modal");
+            const saveButton = document.getElementById("save-button");
+            const closeButton = document.getElementById("close-button");
+            const deleteNodeButton = document.getElementById("delete-node-button");
+            const deleteMarkdownButton = document.getElementById("delete-markdown-button");
+            const labelInput = document.getElementById("labelInput");
+            let currentNode = null;
 
-            // Update nodes
-            node = node.data(nodes, d => d.id);
+            function openModal(options) {
+                const { content, label, isNode, onSave, onDelete } = options;
+                modal.style.display = "block";
+                editorContent.innerHTML = content || "";
+                labelInput.value = label || "";
 
-            node.exit().remove();
-
-            const nodeEnter = node.enter().append("g")
-                .attr("class", "node")
-                .on("click", function (event, d) {
-                    event.stopPropagation(); // prevent svg click
-
-                    if (currentMode === 'connect') {
-                        if (selectedNode && selectedNode !== d) {
-                            // Create a link between selectedNode and d
-                            links.push({ source: selectedNode, target: d });
-                            selectedNode = null;
-                            currentMode = null;
-                            connectNodesButton.classList.remove('active');
-                            restart();
-                        } else {
-                            selectedNode = d;
+                if (isNode) {
+                    // Show node-specific elements
+                    document.getElementById('node-label-container').style.display = 'block';
+                    deleteNodeButton.style.display = 'inline-block';
+                    deleteNodeButton.onclick = function () {
+                        if (onDelete) {
+                            onDelete();
                         }
-                    } else if (currentMode === 'delete') {
-                        if (confirm("Are you sure you want to delete this node?")) {
-                            // Remove node and connected links
-                            nodes = nodes.filter(n => n !== d);
-                            links = links.filter(l => l.source !== d && l.target !== d);
-                            currentMode = null;
-                            deleteButton.classList.remove('active');
+                        closeModal();
+                    };
+                    deleteMarkdownButton.style.display = 'none';
+                    document.getElementById('modal-title').innerText = 'Edit Node';
+
+                } else {
+                    // Show label input for markdown files
+                    document.getElementById('node-label-container').style.display = 'block';
+                    deleteNodeButton.style.display = 'none';
+                    deleteMarkdownButton.style.display = 'inline-block';
+                    deleteMarkdownButton.onclick = function () {
+                        if (onDelete) {
+                            onDelete();
+                        }
+                        closeModal();
+                    };
+                    document.getElementById('modal-title').innerText = 'Edit Markdown File';
+                }
+
+                // Assign the onSave handler
+                saveButton.onclick = function () {
+                    const updatedContent = editorContent.innerHTML;
+                    const updatedLabel = labelInput.value;
+                    onSave(updatedContent, updatedLabel);
+                    closeModal();
+                };
+                closeButton.onclick = closeModal;
+            }
+
+            function closeModal() {
+                modal.style.display = "none";
+                currentNode = null;
+                currentMarkdownFileHandle = null;
+            }
+
+            function openContentModal(d) {
+                currentNode = d;
+                openModal({
+                    content: d.content,
+                    label: d.label,
+                    isNode: true,
+                    onSave: function (updatedContent, updatedLabel) {
+                        if (currentNode) {
+                            currentNode.content = updatedContent;
+                            currentNode.label = updatedLabel;
+                            // Update node appearance to indicate content
                             restart();
                         }
-                    } else {
-                        openContentModal(d);
+                    },
+                    onDelete: function () {
+                        if (currentNode) {
+                            if (confirm("Are you sure you want to delete this node?")) {
+                                // Delete the node
+                                nodes = nodes.filter(n => n !== currentNode);
+                                // Remove links connected to the node
+                                links = links.filter(l => l.source !== currentNode && l.target !== currentNode);
+                                currentNode = null;
+                                restart();
+                            }
+                        }
                     }
-                })
-                .on("dblclick", function(event, d) {
-                    openContentModal(d);
-                })
-                .on("mouseover", function (event, d) {
-                    hoverNode(d);
-                })
-                .on("mouseout", function (event, d) {
-                    unhoverNode();
-                })
-                .call(drag(simulation));
+                });
+            }
 
-            nodeEnter.append("circle")
-                .attr("r", d => d.radius)
-                .attr("fill", d => d.content ? "#6a9955" : "#3c3c3c");
-
-            nodeEnter.append("text")
-                .attr("dy", function(d) {
-                    const lines = (d.label || "Node").split('\n');
-                    return -(lines.length - 1) * 7;
-                })
-                .attr("x", d => d.radius + 5)
-                .selectAll("tspan")
-                .data(function(d) {
-                    return (d.label || "Node").split('\n');
-                })
-                .enter()
-                .append("tspan")
-                .attr("x", 0)
-                .attr("dy", "1.2em")
-                .text(function(line) { return line; });
-
-            node = nodeEnter.merge(node);
-
-            // Update node circles with new radii
-            node.select("circle")
-                .attr("r", d => d.radius);
-
-            // Update node labels position and content
-            node.select("text")
-                .attr("dy", function(d) {
-                    const lines = (d.label || "Node").split('\n');
-                    return -(lines.length - 1) * 7;
-                })
-                .selectAll("tspan")
-                .data(function(d) {
-                    return (d.label || "Node").split('\n');
-                })
-                .join(
-                    enter => enter.append("tspan")
-                        .attr("x", 0)
-                        .attr("dy", "1.2em")
-                        .text(function(line) { return line; }),
-                    update => update.text(function(line) { return line; }),
-                    exit => exit.remove()
-                );
-
-            // Update links
-            link = link.data(links, d => d.source.id + "-" + d.target.id);
-
-            link.exit().remove();
-
-            link = link.enter().append("line")
-                .attr("class", "link")
-                .on("click", function(event, d) {
-                    event.stopPropagation();
-                    if (currentMode === 'delete') {
-                        if (confirm("Are you sure you want to delete this link?")) {
-                            links = links.filter(l => l !== d);
-                            currentMode = null;
-                            deleteButton.classList.remove('active');
-                            restart();
+            function openMarkdownFile(content, fileHandle, listItem) {
+                currentMarkdownFileHandle = fileHandle;
+                const originalFileName = listItem.dataset.filename;
+                openModal({
+                    content: content,
+                    label: originalFileName,
+                    isNode: false,
+                    onSave: async function (updatedContent, updatedLabel) {
+                        if (currentMarkdownFileHandle) {
+                            // Ensure filename ends with .md
+                            if (!updatedLabel.endsWith('.md')) {
+                                updatedLabel += '.md';
+                            }
+                            // Check if filename has changed
+                            if (updatedLabel !== originalFileName) {
+                                // Handle renaming
+                                try {
+                                    // Check if file with new name exists
+                                    await currentDirectoryHandle.getFileHandle(updatedLabel);
+                                    alert('A file with this name already exists.');
+                                    return;
+                                } catch (err) {
+                                    // If error, the file doesn't exist, proceed to rename
+                                    // Create new file with updatedLabel
+                                    const newFileHandle = await currentDirectoryHandle.getFileHandle(updatedLabel, { create: true });
+                                    // Write content to new file
+                                    const writable = await newFileHandle.createWritable();
+                                    await writable.write(updatedContent);
+                                    await writable.close();
+                                    // Delete old file
+                                    await currentDirectoryHandle.removeEntry(originalFileName);
+                                    // Update fileHandles array
+                                    fileHandles = fileHandles.map(fh => fh.handle === fileHandle ? { name: updatedLabel, handle: newFileHandle, type: 'markdown' } : fh);
+                                    // Update listItem
+                                    listItem.textContent = updatedLabel;
+                                    listItem.dataset.filename = updatedLabel;
+                                    const fileTypeLabel = document.createElement('span');
+                                    fileTypeLabel.textContent = ' (Markdown)';
+                                    fileTypeLabel.className = 'file-type-label';
+                                    listItem.appendChild(fileTypeLabel);
+                                    // Update event listeners
+                                    listItem.onclick = () => {
+                                        selectFile(newFileHandle, listItem, 'markdown');
+                                    };
+                                    listItem.oncontextmenu = (event) => {
+                                        event.preventDefault();
+                                        showFileContextMenu(event, newFileHandle, listItem, 'markdown');
+                                    };
+                                    // Update currentMarkdownFileHandle
+                                    currentMarkdownFileHandle = newFileHandle;
+                                }
+                            } else {
+                                // Filename unchanged, just save content
+                                const writable = await currentMarkdownFileHandle.createWritable();
+                                await writable.write(updatedContent);
+                                await writable.close();
+                            }
                         }
-                    } else {
-                        selectLink(d3.select(this), d);
+                    },
+                    onDelete: function () {
+                        if (confirm("Are you sure you want to delete this markdown file?")) {
+                            deleteFile(fileHandle, listItem, 'markdown');
+                            closeModal();
+                        }
                     }
-                })
-                .merge(link);
-
-            // Restart simulation
-            simulation.nodes(nodes);
-            simulation.force("link").links(links);
-            simulation.alpha(1).restart();
-        }
-
-        // Update positions on each simulation tick
-        simulation.on("tick", () => {
-            link
-                .attr("x1", d => d.source.x)
-                .attr("y1", d => d.source.y)
-                .attr("x2", d => d.target.x)
-                .attr("y2", d => d.target.y);
-
-            node
-                .attr("transform", d => `translate(${d.x},${d.y})`);
-        });
-
-        // Drag behavior
-        function drag(simulation) {
-            function dragstarted(event, d) {
-                if (!event.active) simulation.alphaTarget(0.3).restart();
-                d.fx = d.x;
-                d.fy = d.y;
+                });
             }
 
-            function dragged(event, d) {
-                d.fx = event.x;
-                d.fy = event.y;
+            // Close modals when clicking outside of them
+            window.onclick = function (event) {
+                if (event.target == modal) {
+                    closeModal();
+                }
+            };
+
+            // Save and Load Mind Map
+            const saveMindMapButton = document.getElementById("save-mindmap-button");
+            const loadMindMapButton = document.getElementById("load-mindmap-button");
+            const saveCurrentMindMapButton = document.getElementById("save-current-mindmap-button");
+
+            saveMindMapButton.onclick = async function() {
+                const mindMapData = {
+                    nodes: nodes.map(d => ({
+                        id: d.id,
+                        x: d.x,
+                        y: d.y,
+                        contentFile: d.content ? `node_${d.id}.html` : null, // Changed to .html to preserve data-image-id
+                        label: d.label
+                    })),
+                    links: links.map(d => ({
+                        source: d.source.id,
+                        target: d.target.id
+                    }))
+                };
+
+                const zip = new JSZip();
+                zip.file("mindmap.json", JSON.stringify(mindMapData, null, 2));
+
+                // Add markdown files and images
+                for (const d of nodes) {
+                    if (d.content) {
+                        // Extract and save images within the content
+                        const div = document.createElement('div');
+                        div.innerHTML = d.content;
+                        const images = div.querySelectorAll('img');
+                        images.forEach((img, index) => {
+                            const imageData = img.src.split(',')[1]; // base64 data
+                            const imageName = `node_${d.id}_img_${index}.png`;
+                            zip.file(imageName, imageData, { base64: true });
+                            // Replace src with relative path in content
+                            img.setAttribute('src', imageName);
+                        });
+
+                        // Save modified content as HTML to preserve data-image-id
+                        zip.file(`node_${d.id}.html`, div.innerHTML);
+                    }
+                }
+
+                const content = await zip.generateAsync({ type: "blob" });
+
+                // Use File System Access API if available
+                if (window.showSaveFilePicker) {
+                    try {
+                        const options = {
+                            suggestedName: 'mindmap.zip',
+                            types: [{
+                                description: 'ZIP Files',
+                                accept: {'application/zip': ['.zip']},
+                            }],
+                        };
+                        const handle = await window.showSaveFilePicker(options);
+                        currentFileHandle = handle; // Store the handle
+                        const writable = await handle.createWritable();
+                        await writable.write(content);
+                        await writable.close();
+                        alert('Mind map saved successfully.');
+                    } catch (err) {
+                        console.error(err);
+                        // Fallback to FileSaver.js
+                        saveAs(content, 'mindmap.zip');
+                        alert('Mind map saved successfully.');
+                    }
+                } else {
+                    // Fallback to FileSaver.js
+                    saveAs(content, 'mindmap.zip');
+                    alert('Mind map saved successfully.');
+                }
+            };
+
+            saveCurrentMindMapButton.onclick = async function() {
+                if (currentFileHandle) {
+                    const mindMapData = {
+                        nodes: nodes.map(d => ({
+                            id: d.id,
+                            x: d.x,
+                            y: d.y,
+                            contentFile: d.content ? `node_${d.id}.html` : null, // Changed to .html to preserve data-image-id
+                            label: d.label
+                        })),
+                        links: links.map(d => ({
+                            source: d.source.id,
+                            target: d.target.id
+                        }))
+                    };
+
+                    const zip = new JSZip();
+                    zip.file("mindmap.json", JSON.stringify(mindMapData, null, 2));
+
+                    // Add markdown files and images
+                    for (const d of nodes) {
+                        if (d.content) {
+                            // Extract and save images within the content
+                            const div = document.createElement('div');
+                            div.innerHTML = d.content;
+                            const images = div.querySelectorAll('img');
+                            images.forEach((img, index) => {
+                                const imageData = img.src.split(',')[1]; // base64 data
+                                const imageName = `node_${d.id}_img_${index}.png`;
+                                zip.file(imageName, imageData, { base64: true });
+                                // Replace src with relative path in content
+                                img.setAttribute('src', imageName);
+                            });
+
+                            // Save modified content as HTML to preserve data-image-id
+                            zip.file(`node_${d.id}.html`, div.innerHTML);
+                        }
+                    }
+
+                    const content = await zip.generateAsync({ type: "blob" });
+
+                    const writable = await currentFileHandle.createWritable();
+                    await writable.write(content);
+                    await writable.close();
+                    // Removed alert for saving
+                } else {
+                    alert('No file is currently loaded.');
+                }
+            };
+
+            loadMindMapButton.onclick = async function () {
+                if (window.showOpenFilePicker) {
+                    try {
+                        const [fileHandle] = await window.showOpenFilePicker({
+                            types: [{
+                                description: 'ZIP Files',
+                                accept: {'application/zip': ['.zip']},
+                            }],
+                        });
+                        currentFileHandle = fileHandle; // Store the handle
+                        const file = await fileHandle.getFile();
+                        loadMindMapFile(file);
+                    } catch (err) {
+                        console.error(err);
+                    }
+                } else {
+                    // Fallback for browsers without File System Access API
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.zip';
+                    input.onchange = (event) => {
+                        const file = event.target.files[0];
+                        if (file) {
+                            loadMindMapFile(file);
+                        }
+                    };
+                    input.click();
+                }
+            };
+
+            async function loadMindMapFile(file) {
+                JSZip.loadAsync(file).then(function (zip) {
+                    return zip.file("mindmap.json").async("string").then(function (data) {
+                        const mindMapData = JSON.parse(data);
+                        const nodePromises = mindMapData.nodes.map(d => {
+                            if (d.contentFile) {
+                                return zip.file(d.contentFile).async("string").then(function (content) {
+                                    // Create a container for the content
+                                    const div = document.createElement('div');
+
+                                    // Load images back into the content
+                                    const tempDiv = document.createElement('div');
+                                    tempDiv.innerHTML = content;
+                                    const images = tempDiv.querySelectorAll('img');
+                                    const imagePromises = Array.from(images).map(img => {
+                                        const imageName = img.getAttribute('src');
+                                        return zip.file(imageName).async("base64").then(data => {
+                                            img.src = 'data:image/png;base64,' + data;
+                                            // Reassign data-image-id based on image name
+                                            // Assuming imageName is in the format 'node_ID_img_index.png'
+                                            const imageId = imageName.replace('.png', '');
+                                            img.setAttribute('data-image-id', imageId);
+                                            // Populate imageDataMap
+                                            imageDataMap[imageId] = {
+                                                dataUrl: img.src,
+                                                width: img.width,
+                                                height: img.height,
+                                                aspectRatio: img.width / img.height
+                                            };
+                                        });
+                                    });
+
+                                    return Promise.all(imagePromises).then(() => {
+                                        div.innerHTML = tempDiv.innerHTML;
+                                        return { ...d, content: div.innerHTML };
+                                    });
+                                });
+                            } else {
+                                return Promise.resolve({ ...d, content: "" });
+                            }
+                        });
+
+                        Promise.all(nodePromises).then(function (loadedNodes) {
+                            nodes = loadedNodes;
+                            links = mindMapData.links.map(d => ({
+                                source: nodes.find(n => n.id === d.source),
+                                target: nodes.find(n => n.id === d.target)
+                            }));
+                            restart();
+                        });
+                    });
+                });
             }
 
-            function dragended(event, d) {
-                if (!event.active) simulation.alphaTarget(0);
-                d.fx = null;
-                d.fy = null;
+            // Editor
+            const editorContent = document.getElementById('editorContent');
+            const insertImageButton = document.getElementById('insertImage');
+            const imageInput = document.getElementById('imageInput');
+            const imageSizeControls = document.getElementById('imageSizeControls');
+            const sizeSlider = document.getElementById('sizeSlider');
+            const sizeValue = document.getElementById('sizeValue');
+
+            let imageCounter = 0;
+            const imageDataMap = {}; // Map to store image data with IDs
+            let selectedImage = null;
+
+            // Handle image insertion
+            insertImageButton.addEventListener('click', () => {
+                imageInput.click();
+            });
+
+            imageInput.addEventListener('change', () => {
+                const file = imageInput.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const dataUrl = event.target.result;
+                        const img = new Image();
+                        img.onload = function() {
+                            const naturalWidth = img.naturalWidth;
+                            const naturalHeight = img.naturalHeight;
+                            const aspectRatio = naturalWidth / naturalHeight;
+
+                            // Assign a unique ID to the image
+                            imageCounter += 1;
+                            const imageId = 'image' + imageCounter;
+
+                            // Assign data-image-id
+                            const imageElement = new Image();
+                            imageElement.src = dataUrl;
+                            imageElement.setAttribute('data-image-id', imageId);
+                            imageElement.alt = 'Alt Text';
+                            imageElement.width = 300; // Default width
+                            imageElement.height = Math.round(300 / aspectRatio); // Maintain aspect ratio
+
+                            // Store the image data and dimensions
+                            imageDataMap[imageId] = {
+                                dataUrl: dataUrl,
+                                width: 300,
+                                height: Math.round(300 / aspectRatio),
+                                aspectRatio: aspectRatio
+                            };
+
+                            // Insert image at cursor position
+                            insertImageAtCursor(imageElement);
+                        };
+                        img.src = dataUrl;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Insert image at cursor position
+            function insertImageAtCursor(imageElement) {
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    const range = sel.getRangeAt(0);
+                    range.deleteContents();
+                    range.insertNode(imageElement);
+                    // Move cursor after the image
+                    range.setStartAfter(imageElement);
+                    range.setEndAfter(imageElement);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                } else {
+                    editorContent.appendChild(imageElement);
+                }
             }
 
-            return d3.drag()
-                .on("start", dragstarted)
-                .on("drag", dragged)
-                .on("end", dragended);
-        }
+            // Handle image selection
+            editorContent.addEventListener('click', (event) => {
+                if (event.target.tagName === 'IMG') {
+                    selectImage(event.target);
+                } else {
+                    deselectImage();
+                }
+            });
 
-        // Hover behavior
-        function hoverNode(d) {
-            node.classed('blurred', n => !isConnected(d, n));
-            link.classed('blurred', l => l.source !== d && l.target !== d);
-            node.classed('hovered', n => n === d);
-            link.classed('highlighted', l => l.source === d || l.target === d);
-        }
+            function selectImage(imgElement) {
+                deselectImage();
+                selectedImage = imgElement;
+                imgElement.classList.add('selected');
 
-        function unhoverNode() {
-            node.classed('blurred', false);
-            link.classed('blurred', false);
-            node.classed('hovered', false);
-            link.classed('highlighted', false);
-        }
+                // Get image info
+                const imageId = imgElement.getAttribute('data-image-id');
+                const imageInfo = imageDataMap[imageId];
 
-        function isConnected(a, b) {
-            return links.some(l => (l.source === a && l.target === b) || (l.source === b && l.target === a)) || a === b;
-        }
+                if (imageInfo) {
+                    // Set slider value and display controls
+                    sizeSlider.value = imageInfo.width;
+                    sizeSlider.max = imageInfo.width * 4; // Allow scaling up to 4 times
+                    sizeValue.innerText = `Width: ${imageInfo.width}px`;
 
-        // Handle link selection
-        function selectLink(linkElement, linkData) {
-            // Deselect any previously selected link
-            if (selectedLink) {
-                selectedLink.classed('selected', false);
+                    imageSizeControls.style.display = 'flex';
+                } else {
+                    // If imageInfo is not found, hide the slider
+                    imageSizeControls.style.display = 'none';
+                }
             }
-            if (selectedLink === linkElement) {
-                // If the link is already selected, deselect it
-                selectedLink = null;
-                selectedLinkData = null;
-            } else {
-                // Select the new link
-                selectedLink = linkElement;
-                selectedLinkData = linkData;
-                selectedLink.classed('selected', true);
-            }
-        }
 
-        // Handle keydown events for deleting links
-        window.addEventListener('keydown', function(event) {
-            if (event.key === 'Delete' || event.key === 'Backspace') {
+            function deselectImage() {
+                if (selectedImage) {
+                    selectedImage.classList.remove('selected');
+                    selectedImage = null;
+                    imageSizeControls.style.display = 'none';
+                }
+            }
+
+            // Handle size slider adjustment
+            sizeSlider.addEventListener('input', () => {
+                if (selectedImage) {
+                    const imageId = selectedImage.getAttribute('data-image-id');
+                    const imageInfo = imageDataMap[imageId];
+
+                    if (imageInfo) {
+                        const newWidth = parseInt(sizeSlider.value);
+                        const newHeight = Math.round(newWidth / imageInfo.aspectRatio);
+
+                        // Update image element
+                        selectedImage.width = newWidth;
+                        selectedImage.height = newHeight;
+
+                        // Update image data
+                        imageInfo.width = newWidth;
+                        imageInfo.height = newHeight;
+
+                        sizeValue.innerText = `Width: ${newWidth}px`;
+                    }
+                }
+            });
+
+            // Function to format text
+            function formatText(command) {
+                switch (command) {
+                    case 'bold':
+                        document.execCommand('bold');
+                        break;
+                    case 'italic':
+                        document.execCommand('italic');
+                        break;
+                    case 'h1':
+                        document.execCommand('formatBlock', false, 'h1');
+                        break;
+                    case 'h2':
+                        document.execCommand('formatBlock', false, 'h2');
+                        break;
+                    case 'ul':
+                        document.execCommand('insertUnorderedList');
+                        break;
+                    case 'ol':
+                        document.execCommand('insertOrderedList');
+                        break;
+                }
+            }
+
+            // Toggle Instructions
+            const instructionsButton = document.getElementById('instructions-button');
+            const instructionsPanel = document.getElementById('instructionsPanel');
+
+            instructionsButton.onclick = function() {
+                if (instructionsPanel.style.display === 'none' || instructionsPanel.style.display === '') {
+                    instructionsPanel.style.display = 'block';
+                } else {
+                    instructionsPanel.style.display = 'none';
+                }
+            };
+
+            // Floating Action Buttons
+            const addNodeButton = document.getElementById("add-node-button");
+            const connectNodesButton = document.getElementById("connect-nodes-button");
+            const deleteButton = document.getElementById("delete-button");
+
+            addNodeButton.addEventListener('click', () => {
+                // Add node at center
+                const nodeData = { id: Date.now(), x: width / 2, y: height / 2, content: "", label: "Node" };
+                nodes.push(nodeData);
+                restart();
+            });
+
+            connectNodesButton.addEventListener('click', () => {
+                if (currentMode === 'connect') {
+                    currentMode = null;
+                    selectedNode = null;
+                    connectNodesButton.classList.remove('active');
+                } else {
+                    currentMode = 'connect';
+                    connectNodesButton.classList.add('active');
+                    deleteButton.classList.remove('active');
+                }
+            });
+
+            deleteButton.addEventListener('click', () => {
                 if (selectedLinkData) {
-                    if (confirm("Are you sure you want to delete this link?")) {
-                        // Remove the link
+                    if (confirm("Are you sure you want to delete the selected link?")) {
                         links = links.filter(l => l !== selectedLinkData);
                         selectedLink.remove();
                         selectedLink = null;
                         selectedLinkData = null;
                         restart();
                     }
+                } else if (currentMode === 'delete') {
+                    currentMode = null;
+                    deleteButton.classList.remove('active');
+                } else {
+                    currentMode = 'delete';
+                    deleteButton.classList.add('active');
+                    connectNodesButton.classList.remove('active');
                 }
-            }
-        });
-
-        // Modal handling for content and label
-        const modal = document.getElementById("modal");
-        const saveButton = document.getElementById("save-button");
-        const closeButton = document.getElementById("close-button");
-        const deleteNodeButton = document.getElementById("delete-node-button");
-        const labelInput = document.getElementById("labelInput");
-        let currentNode = null;
-
-        function openContentModal(d) {
-            currentNode = d;
-            modal.style.display = "block";
-
-            editorContent.innerHTML = d.content || "";
-            labelInput.value = d.label || "Node";
-        }
-
-        saveButton.onclick = function () {
-            if (currentNode) {
-                currentNode.content = editorContent.innerHTML;
-                currentNode.label = labelInput.value;
-                // Update node appearance to indicate content
-                restart();
-            }
-            closeContentModal();
-        };
-
-        closeButton.onclick = closeContentModal;
-
-        deleteNodeButton.onclick = function () {
-            if (currentNode) {
-                if (confirm("Are you sure you want to delete this node?")) {
-                    // Delete the node
-                    nodes = nodes.filter(n => n !== currentNode);
-                    // Remove links connected to the node
-                    links = links.filter(l => l.source !== currentNode && l.target !== currentNode);
-                    currentNode = null;
-                    restart();
-                    closeContentModal();
-                }
-            }
-        };
-
-        function closeContentModal() {
-            modal.style.display = "none";
-            currentNode = null;
-        }
-
-        // Close modals when clicking outside of them
-        window.onclick = function (event) {
-            if (event.target == modal) {
-                closeContentModal();
-            }
-        };
-
-        // Save and Load Mind Map
-        const saveMindMapButton = document.getElementById("save-mindmap-button");
-        const loadMindMapButton = document.getElementById("load-mindmap-button");
-
-        saveMindMapButton.onclick = async function() {
-            const mindMapData = {
-                nodes: nodes.map(d => ({
-                    id: d.id,
-                    x: d.x,
-                    y: d.y,
-                    contentFile: d.content ? `node_${d.id}.html` : null, // Changed to .html to preserve data-image-id
-                    label: d.label
-                })),
-                links: links.map(d => ({
-                    source: d.source.id,
-                    target: d.target.id
-                }))
-            };
-
-            const zip = new JSZip();
-            zip.file("mindmap.json", JSON.stringify(mindMapData, null, 2));
-
-            // Add markdown files and images
-            for (const d of nodes) {
-                if (d.content) {
-                    // Extract and save images within the content
-                    const div = document.createElement('div');
-                    div.innerHTML = d.content;
-                    const images = div.querySelectorAll('img');
-                    images.forEach((img, index) => {
-                        const imageData = img.src.split(',')[1]; // base64 data
-                        const imageName = `node_${d.id}_img_${index}.png`;
-                        zip.file(imageName, imageData, { base64: true });
-                        // Replace src with relative path in content
-                        img.setAttribute('src', imageName);
-                    });
-
-                    // Save modified content as HTML to preserve data-image-id
-                    zip.file(`node_${d.id}.html`, div.innerHTML);
-                }
-            }
-
-            const content = await zip.generateAsync({ type: "blob" });
-
-            // Use File System Access API if available
-            if (window.showSaveFilePicker) {
-                try {
-                    const options = {
-                        suggestedName: 'mindmap.zip',
-                        types: [{
-                            description: 'ZIP Files',
-                            accept: {'application/zip': ['.zip']},
-                        }],
-                    };
-                    const handle = await window.showSaveFilePicker(options);
-                    const writable = await handle.createWritable();
-                    await writable.write(content);
-                    await writable.close();
-                    alert('Mind map saved successfully.');
-                } catch (err) {
-                    console.error(err);
-                    // Fallback to FileSaver.js
-                    saveAs(content, 'mindmap.zip');
-                    alert('Mind map saved successfully.');
-                }
-            } else {
-                // Fallback to FileSaver.js
-                saveAs(content, 'mindmap.zip');
-                alert('Mind map saved successfully.');
-            }
-        };
-
-        loadMindMapButton.onclick = async function () {
-            if (window.showOpenFilePicker) {
-                try {
-                    const [fileHandle] = await window.showOpenFilePicker({
-                        types: [{
-                            description: 'ZIP Files',
-                            accept: {'application/zip': ['.zip']},
-                        }],
-                    });
-                    const file = await fileHandle.getFile();
-                    loadMindMapFile(file);
-                } catch (err) {
-                    console.error(err);
-                }
-            } else {
-                // Fallback for browsers without File System Access API
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.zip';
-                input.onchange = (event) => {
-                    const file = event.target.files[0];
-                    if (file) {
-                        loadMindMapFile(file);
-                    }
-                };
-                input.click();
-            }
-        };
-
-        async function loadMindMapFile(file) {
-            JSZip.loadAsync(file).then(function (zip) {
-                return zip.file("mindmap.json").async("string").then(function (data) {
-                    const mindMapData = JSON.parse(data);
-                    const nodePromises = mindMapData.nodes.map(d => {
-                        if (d.contentFile) {
-                            return zip.file(d.contentFile).async("string").then(function (content) {
-                                // Create a container for the content
-                                const div = document.createElement('div');
-
-                                // Load images back into the content
-                                const tempDiv = document.createElement('div');
-                                tempDiv.innerHTML = content;
-                                const images = tempDiv.querySelectorAll('img');
-                                const imagePromises = Array.from(images).map(img => {
-                                    const imageName = img.getAttribute('src');
-                                    return zip.file(imageName).async("base64").then(data => {
-                                        img.src = 'data:image/png;base64,' + data;
-                                        // Reassign data-image-id based on image name
-                                        // Assuming imageName is in the format 'node_ID_img_index.png'
-                                        const imageId = imageName.replace('.png', '');
-                                        img.setAttribute('data-image-id', imageId);
-                                        // Populate imageDataMap
-                                        imageDataMap[imageId] = {
-                                            dataUrl: img.src,
-                                            width: img.width,
-                                            height: img.height,
-                                            aspectRatio: img.width / img.height
-                                        };
-                                    });
-                                });
-
-                                return Promise.all(imagePromises).then(() => {
-                                    div.innerHTML = tempDiv.innerHTML;
-                                    return { ...d, content: div.innerHTML };
-                                });
-                            });
-                        } else {
-                            return Promise.resolve({ ...d, content: "" });
-                        }
-                    });
-
-                    Promise.all(nodePromises).then(function (loadedNodes) {
-                        nodes = loadedNodes;
-                        links = mindMapData.links.map(d => ({
-                            source: nodes.find(n => n.id === d.source),
-                            target: nodes.find(n => n.id === d.target)
-                        }));
-                        restart();
-                    });
-                });
             });
-        }
 
-        // Markdown editor
-        const editorContent = document.getElementById('editorContent');
-        const insertImageButton = document.getElementById('insertImage');
-        const imageInput = document.getElementById('imageInput');
-        const imageSizeControls = document.getElementById('imageSizeControls');
-        const sizeSlider = document.getElementById('sizeSlider');
-        const sizeValue = document.getElementById('sizeValue');
+            // Reset modes when clicking on the canvas
+            svg.on("click", function (event) {
+                if (event.defaultPrevented) return; // dragged
 
-        let imageCounter = 0;
-        const imageDataMap = {}; // Map to store image data with IDs
-        let selectedImage = null;
-
-        // Handle image insertion
-        insertImageButton.addEventListener('click', () => {
-            imageInput.click();
-        });
-
-        imageInput.addEventListener('change', () => {
-            const file = imageInput.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const dataUrl = event.target.result;
-                    const img = new Image();
-                    img.onload = function() {
-                        const naturalWidth = img.naturalWidth;
-                        const naturalHeight = img.naturalHeight;
-                        const aspectRatio = naturalWidth / naturalHeight;
-
-                        // Assign a unique ID to the image
-                        imageCounter += 1;
-                        const imageId = 'image' + imageCounter;
-
-                        // Assign data-image-id
-                        const imageElement = new Image();
-                        imageElement.src = dataUrl;
-                        imageElement.setAttribute('data-image-id', imageId);
-                        imageElement.alt = 'Alt Text';
-                        imageElement.width = 300; // Default width
-                        imageElement.height = Math.round(300 / aspectRatio); // Maintain aspect ratio
-
-                        // Store the image data and dimensions
-                        imageDataMap[imageId] = {
-                            dataUrl: dataUrl,
-                            width: 300,
-                            height: Math.round(300 / aspectRatio),
-                            aspectRatio: aspectRatio
-                        };
-
-                        // Insert image at cursor position
-                        insertImageAtCursor(imageElement);
-                    };
-                    img.src = dataUrl;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // Insert image at cursor position
-        function insertImageAtCursor(imageElement) {
-            const sel = window.getSelection();
-            if (sel.rangeCount > 0) {
-                const range = sel.getRangeAt(0);
-                range.deleteContents();
-                range.insertNode(imageElement);
-                // Move cursor after the image
-                range.setStartAfter(imageElement);
-                range.setEndAfter(imageElement);
-                sel.removeAllRanges();
-                sel.addRange(range);
-            } else {
-                editorContent.appendChild(imageElement);
-            }
-        }
-
-        // Handle image selection
-        editorContent.addEventListener('click', (event) => {
-            if (event.target.tagName === 'IMG') {
-                selectImage(event.target);
-            } else {
-                deselectImage();
-            }
-        });
-
-        function selectImage(imgElement) {
-            deselectImage();
-            selectedImage = imgElement;
-            imgElement.classList.add('selected');
-
-            // Get image info
-            const imageId = imgElement.getAttribute('data-image-id');
-            const imageInfo = imageDataMap[imageId];
-
-            if (imageInfo) {
-                // Set slider value and display controls
-                sizeSlider.value = imageInfo.width;
-                sizeSlider.max = imageInfo.width * 4; // Allow scaling up to 4 times
-                sizeValue.innerText = `Width: ${imageInfo.width}px`;
-
-                imageSizeControls.style.display = 'flex';
-            } else {
-                // If imageInfo is not found, hide the slider
-                imageSizeControls.style.display = 'none';
-            }
-        }
-
-        function deselectImage() {
-            if (selectedImage) {
-                selectedImage.classList.remove('selected');
-                selectedImage = null;
-                imageSizeControls.style.display = 'none';
-            }
-        }
-
-        // Handle size slider adjustment
-        sizeSlider.addEventListener('input', () => {
-            if (selectedImage) {
-                const imageId = selectedImage.getAttribute('data-image-id');
-                const imageInfo = imageDataMap[imageId];
-
-                if (imageInfo) {
-                    const newWidth = parseInt(sizeSlider.value);
-                    const newHeight = Math.round(newWidth / imageInfo.aspectRatio);
-
-                    // Update image element
-                    selectedImage.width = newWidth;
-                    selectedImage.height = newHeight;
-
-                    // Update image data
-                    imageInfo.width = newWidth;
-                    imageInfo.height = newHeight;
-
-                    sizeValue.innerText = `Width: ${newWidth}px`;
+                // Deselect any selected link
+                if (selectedLink) {
+                    selectedLink.classed('selected', false);
+                    selectedLink = null;
+                    selectedLinkData = null;
                 }
-            }
-        });
 
-        // Function to format text
-        function formatText(command) {
-            switch (command) {
-                case 'bold':
-                    document.execCommand('bold');
-                    break;
-                case 'italic':
-                    document.execCommand('italic');
-                    break;
-                case 'h1':
-                    document.execCommand('formatBlock', false, 'h1');
-                    break;
-                case 'h2':
-                    document.execCommand('formatBlock', false, 'h2');
-                    break;
-                case 'ul':
-                    document.execCommand('insertUnorderedList');
-                    break;
-                case 'ol':
-                    document.execCommand('insertOrderedList');
-                    break;
-            }
-        }
-
-        // Toggle Instructions
-        const instructionsButton = document.getElementById('instructions-button');
-        const instructionsPanel = document.getElementById('instructionsPanel');
-
-        instructionsButton.onclick = function() {
-            if (instructionsPanel.style.display === 'none' || instructionsPanel.style.display === '') {
-                instructionsPanel.style.display = 'block';
-            } else {
-                instructionsPanel.style.display = 'none';
-            }
-        };
-
-        // Floating Action Buttons
-        const addNodeButton = document.getElementById("add-node-button");
-        const connectNodesButton = document.getElementById("connect-nodes-button");
-        const deleteButton = document.getElementById("delete-button");
-
-        addNodeButton.addEventListener('click', () => {
-            // Add node at center
-            const nodeData = { id: Date.now(), x: width / 2, y: height / 2, content: "", label: "Node" };
-            nodes.push(nodeData);
-            restart();
-        });
-
-        connectNodesButton.addEventListener('click', () => {
-            if (currentMode === 'connect') {
+                // Reset modes
                 currentMode = null;
                 selectedNode = null;
                 connectNodesButton.classList.remove('active');
-            } else {
-                currentMode = 'connect';
-                connectNodesButton.classList.add('active');
                 deleteButton.classList.remove('active');
-            }
-        });
+            });
 
-        deleteButton.addEventListener('click', () => {
-            if (selectedLinkData) {
-                if (confirm("Are you sure you want to delete the selected link?")) {
-                    links = links.filter(l => l !== selectedLinkData);
-                    selectedLink.remove();
-                    selectedLink = null;
-                    selectedLinkData = null;
-                    restart();
+            // Open Folder functionality
+            openFolderButton.addEventListener('click', async () => {
+                if (window.showDirectoryPicker) {
+                    try {
+                        const directoryHandle = await window.showDirectoryPicker();
+                        currentDirectoryHandle = directoryHandle;
+                        fileHandles = [];
+                        mindmapList.innerHTML = '';
+                        for await (const [name, handle] of directoryHandle) {
+                            if (handle.kind === 'file' && (name.endsWith('.zip') || name.endsWith('.md'))) {
+                                const type = name.endsWith('.zip') ? 'mindmap' : 'markdown';
+                                fileHandles.push({ name, handle, type });
+                                const li = document.createElement('li');
+                                li.textContent = name;
+                                li.dataset.filename = name; // Store the actual filename
+                                const fileTypeLabel = document.createElement('span');
+                                fileTypeLabel.textContent = type === 'mindmap' ? ' (Mind Map)' : ' (Markdown)';
+                                fileTypeLabel.className = 'file-type-label';
+                                li.appendChild(fileTypeLabel);
+
+                                li.addEventListener('click', () => {
+                                    selectFile(handle, li, type);
+                                });
+                                li.addEventListener('contextmenu', (event) => {
+                                    event.preventDefault();
+                                    showFileContextMenu(event, handle, li, type);
+                                });
+                                mindmapList.appendChild(li);
+                            }
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('Failed to open directory.');
+                    }
+                } else {
+                    alert('Your browser does not support the File System Access API.');
                 }
-            } else if (currentMode === 'delete') {
-                currentMode = null;
-                deleteButton.classList.remove('active');
-            } else {
-                currentMode = 'delete';
-                deleteButton.classList.add('active');
-                connectNodesButton.classList.remove('active');
+            });
+
+            function selectFile(fileHandle, listItem, fileType) {
+                // Remove active class from all items
+                const items = mindmapList.querySelectorAll('li');
+                items.forEach(item => item.classList.remove('active'));
+
+                // Add active class to selected item
+                listItem.classList.add('active');
+
+                // Load the file based on its type
+                if (fileType === 'mindmap') {
+                    currentFileHandle = fileHandle;
+                    fileHandle.getFile().then(file => {
+                        loadMindMapFile(file);
+                    });
+                } else if (fileType === 'markdown') {
+                    // Open the markdown file in the editor
+                    currentMarkdownFileHandle = fileHandle;
+                    fileHandle.getFile().then(file => {
+                        file.text().then(content => {
+                            openMarkdownFile(content, fileHandle, listItem);
+                        });
+                    });
+                }
             }
-        });
 
-        // Reset modes when clicking on the canvas
-        svg.on("click", function (event) {
-            if (event.defaultPrevented) return; // dragged
+            function addNewMarkdownFile() {
+                const fileName = 'Untitled.md';
+                if (currentDirectoryHandle) {
+                    currentDirectoryHandle.getFileHandle(fileName, { create: true }).then(fileHandle => {
+                        fileHandles.push({ name: fileName, handle: fileHandle, type: 'markdown' });
+                        // Add to the sidebar list
+                        const li = document.createElement('li');
+                        li.textContent = fileName;
+                        li.dataset.filename = fileName; // Store the actual filename
+                        const fileTypeLabel = document.createElement('span');
+                        fileTypeLabel.textContent = ' (Markdown)';
+                        fileTypeLabel.className = 'file-type-label';
+                        li.appendChild(fileTypeLabel);
 
-            // Deselect any selected link
-            if (selectedLink) {
-                selectedLink.classed('selected', false);
-                selectedLink = null;
-                selectedLinkData = null;
+                        li.addEventListener('click', () => {
+                            selectFile(fileHandle, li, 'markdown');
+                        });
+                        li.addEventListener('contextmenu', (event) => {
+                            event.preventDefault();
+                            showFileContextMenu(event, fileHandle, li, 'markdown');
+                        });
+                        mindmapList.appendChild(li);
+                        // Open the new markdown file immediately
+                        openMarkdownFile('', fileHandle, li);
+                    }).catch(err => {
+                        console.error(err);
+                        alert('Failed to create file.');
+                    });
+                } else {
+                    alert('Please open a folder first.');
+                }
             }
 
-            // Reset modes
-            currentMode = null;
-            selectedNode = null;
-            connectNodesButton.classList.remove('active');
-            deleteButton.classList.remove('active');
-        });
-    </script>
+            // Add event listener to the new button
+            addMarkdownButton.addEventListener('click', addNewMarkdownFile);
+
+            function showFileContextMenu(event, fileHandle, listItem, fileType) {
+                contextMenu.innerHTML = '';
+
+                // For markdown files, we no longer need the rename option
+                if (fileType !== 'markdown') {
+                    const renameOption = document.createElement('div');
+                    renameOption.textContent = 'Rename';
+                    renameOption.addEventListener('click', () => {
+                        contextMenu.style.display = 'none';
+                        renameFile(fileHandle, listItem, fileType);
+                    });
+                    contextMenu.appendChild(renameOption);
+                }
+
+                const deleteOption = document.createElement('div');
+                deleteOption.textContent = 'Delete';
+                deleteOption.addEventListener('click', () => {
+                    contextMenu.style.display = 'none';
+                    deleteFile(fileHandle, listItem, fileType);
+                });
+
+                contextMenu.appendChild(deleteOption);
+
+                contextMenu.style.top = event.pageY + 'px';
+                contextMenu.style.left = event.pageX + 'px';
+                contextMenu.style.display = 'block';
+            }
+
+            async function deleteFile(fileHandle, listItem, fileType) {
+                if (currentDirectoryHandle) {
+                    try {
+                        await currentDirectoryHandle.removeEntry(listItem.dataset.filename);
+                        mindmapList.removeChild(listItem);
+                        fileHandles = fileHandles.filter(fh => fh.handle !== fileHandle);
+                        // If the deleted file is currently open, clear the editor
+                        if (currentMarkdownFileHandle === fileHandle) {
+                            currentMarkdownFileHandle = null;
+                            editorContent.innerHTML = '';
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('Failed to delete file.');
+                    }
+                }
+            }
+        </script>
+    </div>
 </body>
 </html>
